@@ -1,4 +1,6 @@
 logs/
 logs_proposed/
+logs_backup
 __pycache__/
 *.txt
+

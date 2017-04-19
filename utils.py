@@ -336,3 +336,9 @@ def bdnn_transform(inputs, w, u):
     trans_inputs = np.reshape(trans_inputs, (trans_inputs.shape[0], -1))
 
     return trans_inputs
+
+
+def clipped_relu(x):
+    x = tf.maximum(x, 0)
+    x = tf.minimum(x, 1)
+    return x

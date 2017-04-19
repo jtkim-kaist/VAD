@@ -10,7 +10,6 @@ FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string('mode', "train", "mode : train/ test [default : train]")
 
-# file_dir = "/home/sbie/github/VAD_KJT/Datafolder/SE_TIMIT_MRCG_0328"
 file_dir = "/home/sbie/storage/VAD_Database/SE_TIMIT_MRCG_0328"
 input_dir = file_dir
 output_dir = file_dir + "/Labels"
@@ -35,12 +34,12 @@ if reset:
     os.popen('mkdir ' + logs_dir + '/train')
     os.popen('mkdir ' + logs_dir + '/valid')
 
+summary_list = ["cost", "accuracy_SNR_-5", "accuracy_SNR_0", "accuracy_SNR_5", "accuracy_SNR_10",
+                "accuracy_across_all_SNRs"]
 
 SMALL_NUM = 1e-5
-learning_rate = 0.00005
 eval_num_batches = 2e5
-SMALL_NUM = 1e-4
-max_epoch = int(1e5)
+max_epoch = int(1e6)
 dropout_rate = 0.5
 decay = 0.9  # batch normalization decay factor
 w = 19  # w default = 19
@@ -50,8 +49,8 @@ th = 0.6
 action_hidden_1 = 512
 action_hidden_2 = 512
 
-effective_batch_size = int(4096 * 2)
-train_batch_size = effective_batch_size + 2*w # batch_size = 32
+effective_batch_size = int(4096 * 2)  # default = 4096 * 2
+train_batch_size = effective_batch_size + 2*w
 valid_batch_size = train_batch_size
 
 assert (w-1) % u == 0, "w-1 must be divisible by u"
@@ -63,14 +62,14 @@ bdnn_inputsize = int(bdnn_winlen * num_features)
 bdnn_outputsize = int(bdnn_winlen)
 
 glimpse_hidden = 256
-bp_hidden = 128
-glimpse_out = bp_out = 128
+bp_hidden = 256
+glimpse_out = bp_out = 256
 nGlimpses = 6
-lstm_cell_size = 128
+lstm_cell_size = 256
 
 global_step = tf.Variable(0, trainable=False)
 
-initLr = 1e-5
+initLr = 5e-4  # default : 1e-5
 lrDecayRate = .95
 lrDecayFreq = 200
 lr = tf.train.exponential_decay(initLr, global_step, lrDecayFreq, lrDecayRate, staircase=True)
@@ -171,6 +170,79 @@ def bdnn_prediction(bdnn_batch_size, logits, threshold=th):
     return result.astype(np.float32)
 
 
+def summary_generation(eval_file_dir):
+
+    summary_dic = {}
+
+    noise_list = os.listdir(eval_file_dir)
+    noise_list = sorted(noise_list)
+    summary_dic["summary_ph"] = summary_ph = tf.placeholder(dtype=tf.float32)
+
+    for name in noise_list:
+
+        with tf.variable_scope(name):
+            for summary_name in summary_list:
+                    summary_dic[name+"_"+summary_name] = tf.summary.scalar(summary_name, summary_ph)
+
+    with tf.variable_scope("Averaged_Results"):
+
+        summary_dic["cost_across_all_noise_types"] = tf.summary.scalar("cost_across_all_noise_types", summary_ph)
+        summary_dic["accuracy_across_all_noise_types"]\
+            = tf.summary.scalar("accuracy_across_all_noise_types", summary_ph)
+
+    return summary_dic
+
+
+def full_evaluation(m_eval, sess_eval, batch_size_eval, eval_file_dir, summary_writer, summary_dic, itr):
+
+    mean_cost = []
+    mean_accuracy = []
+
+    print("-------- Performance for each of noise types --------")
+
+    noise_list = os.listdir(eval_file_dir)
+    noise_list = sorted(noise_list)
+
+    summary_ph = summary_dic["summary_ph"]
+
+    for i in range(len(noise_list)):
+
+        noise_name = '/' + noise_list[i]
+        eval_input_dir = eval_file_dir + noise_name
+        eval_output_dir = eval_file_dir + noise_name + '/Labels'
+        eval_data_set = dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=w, u=u, name="eval")
+
+        eval_cost, eval_accuracy, eval_list = evaluation(m_eval, eval_data_set, sess_eval, batch_size_eval)
+
+        print("noise type : " + noise_list[i])
+        print("cost: %.3f, accuracy across all SNRs: %.3f" % (eval_cost, eval_accuracy))
+
+        print('accuracy wrt SNR:')
+
+        print('SNR_-5 : %.3f, SNR_0 : %.3f, SNR_5 : %.3f, SNR_10 : %.3f' % (eval_list[0], eval_list[1],
+                                                                            eval_list[2], eval_list[3]))
+        eval_summary_list = [eval_cost] + eval_list + [eval_accuracy]
+
+        for j, summary_name in enumerate(summary_list):
+            summary_str = sess_eval.run(summary_dic[noise_list[i]+"_"+summary_name], feed_dict={summary_ph: eval_summary_list[j]})
+            summary_writer.add_summary(summary_str, itr)
+
+        mean_cost.append(eval_cost)
+        mean_accuracy.append(eval_accuracy)
+
+    mean_cost = np.mean(np.asarray(mean_cost))
+    mean_accuracy = np.mean(np.asarray(mean_accuracy))
+
+    summary_writer.add_summary(sess_eval.run(summary_dic["cost_across_all_noise_types"],
+                                             feed_dict={summary_ph: mean_cost}), itr)
+    summary_writer.add_summary(sess_eval.run(summary_dic["accuracy_across_all_noise_types"],
+                                             feed_dict={summary_ph: mean_accuracy}), itr)
+
+    print("-------- Performance across all of noise types --------")
+    print("cost : %.3f" % mean_cost)
+    print("** accuracy across all noise_types : %.3f" % mean_accuracy)
+
+
 def evaluation(m_valid, valid_data_set, sess, eval_batch_size):
     # num_samples = valid_data_set.num_samples
     # num_batches = num_samples / batch_size
@@ -245,7 +317,7 @@ class Model(object):
         cell_outputs = self.inference(reuse)  # (batch_size, bdnn_outputsize)
         # set objective function
 
-        self.cost, self.reward, self.train_op, self.avg_b, self.rminusb, self.sampled_bps_tensor, self.lr\
+        self.cost, self.reward, self.train_op, self.avg_b, self.rminusb, self.sampled_bps_tensor, self.p_bps, self.lr\
             = self.calc_reward(cell_outputs)
 
     def inference(self, reuse=None):
@@ -295,9 +367,12 @@ class Model(object):
             else:  # final time_step
                 with tf.variable_scope("baseline", reuse=reuse_recurrent):
                     cell_output_no_grad = tf.stop_gradient(cell_output)
-                    baseline = tf.sigmoid(
-                        utils.batch_norm_affine_transform(cell_output_no_grad, 1, decay=decay, name='baseline',
-                                                          is_training=is_training))
+                    # baseline = tf.sigmoid(
+                    #     utils.batch_norm_affine_transform(cell_output_no_grad, 1, decay=decay, name='baseline',
+                    #                                       is_training=is_training))
+                    # baseline = tf.sigmoid(affine_transform(cell_output_no_grad, 1, name='baseline'))
+                    baseline = utils.clipped_relu(affine_transform(cell_output_no_grad, 1, name='baseline'))
+
                     self.baselines.append(baseline)
 
         return outputs
@@ -330,13 +405,19 @@ class Model(object):
 
         with tf.variable_scope("baseline", reuse=reuse):
 
-            baseline = tf.sigmoid(
-                utils.batch_norm_affine_transform(cell_output_no_grad, 1, decay=decay, name='baseline',
-                                                  is_training=is_training))
+            # baseline = tf.sigmoid(
+            #     utils.batch_norm_affine_transform(cell_output_no_grad, 1, decay=decay, name='baseline',
+            #                                       is_training=is_training))
+            # baseline = tf.sigmoid(affine_transform(cell_output_no_grad, 1, name='baseline'))
+            baseline = utils.clipped_relu(affine_transform(cell_output_no_grad, 1, name='baseline'))
+
             self.baselines.append(baseline)
 
         with tf.variable_scope("selection_network", reuse=reuse):
-            mean_bp = tf.sigmoid(
+            # mean_bp = tf.sigmoid(
+            #     utils.batch_norm_affine_transform(cell_output_no_grad, int(bdnn_winlen), decay=decay, name='selection',
+            #                                       is_training=is_training))
+            mean_bp = utils.clipped_relu(
                 utils.batch_norm_affine_transform(cell_output_no_grad, int(bdnn_winlen), decay=decay, name='selection',
                                                   is_training=is_training))
             self.mean_bps.append(mean_bp)
@@ -395,7 +476,6 @@ class Model(object):
     def calc_reward(self, outputs):
 
         batch_size = self.batch_size
-        is_training = self.is_training
 
         # consider the action at the last time step
 
@@ -431,6 +511,7 @@ class Model(object):
         raw_labels = self.labels[:, raw_indx]
         raw_labels = tf.reshape(raw_labels, shape=(-1, 1))
         R = tf.cast(tf.equal(result, raw_labels), tf.float32)
+        R = tf.stop_gradient(R)
         R = tf.reshape(R, (batch_size, 1))
         R = tf.tile(R, [1, nGlimpses * int(bdnn_winlen)])
         reward = tf.reduce_mean(R)
@@ -457,7 +538,7 @@ class Model(object):
         optimizer = tf.train.AdamOptimizer(lr)
         train_op = optimizer.apply_gradients(zip(grads, var_list), global_step=global_step)
 
-        return cost, reward, train_op, tf.reduce_mean(b), tf.reduce_mean(R - b), sampled_bps, lr
+        return cost, reward, train_op, tf.reduce_mean(b), tf.reduce_mean(R - b), sampled_bps, tf.reduce_mean(p_bps), lr
 
 
 def main(argv=None):
@@ -476,15 +557,17 @@ def main(argv=None):
     #                               Summary Part                               #
 
     print("Setting up summary op...")
+    summary_ph = tf.placeholder(dtype=tf.float32)
 
-    cost_ph = tf.placeholder(dtype=tf.float32)
-    accuracy_ph = tf.placeholder(dtype=tf.float32)
+    with tf.variable_scope("Aggregated_Training_Parts"):
 
-    cost_summary_op = tf.summary.scalar("cost", cost_ph)
-    accuracy_summary_op = tf.summary.scalar("accuracy", accuracy_ph)
+        cost_summary_op = tf.summary.scalar("cost", summary_ph)
+        accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
 
     train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=4)
     valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=4)
+    summary_dic = summary_generation(valid_file_dir)
+
     print("Done")
 
     #                               Model Save Part                            #
@@ -508,11 +591,9 @@ def main(argv=None):
         sess.run(tf.global_variables_initializer())  # if the checkpoint doesn't exist, do initialization
 
     train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
-    valid_data_set = dr.DataReader(valid_input_dir, valid_output_dir, norm_dir, w=w, u=u, name="valid")  # validation data reader initialization
 
     if FLAGS.mode is 'train':
 
-        epoch = 0
         for itr in range(max_epoch):
 
             train_inputs, train_labels = train_data_set.next_batch(train_batch_size)
@@ -522,43 +603,34 @@ def main(argv=None):
 
             sess.run(m_train.train_op, feed_dict=feed_dict)
 
-            if itr % 50 == 0 and itr >= 0:
+            if itr % 10 == 0 and itr > 0:
 
-                train_cost, train_reward = sess.run([m_train.cost, m_train.reward], feed_dict=feed_dict)
+                train_cost, train_reward, train_avg_b, train_rminusb, train_p_bps, train_lr \
+                    = sess.run([m_train.cost, m_train.reward, m_train.avg_b, m_train.rminusb, m_train.p_bps, m_train.lr]
+                               , feed_dict=feed_dict)
                 sampled_bps_tensor = sess.run(m_train.sampled_bps_tensor, feed_dict=feed_dict)
                 sampled_bps_tensor = np.mean(sampled_bps_tensor[:, -1, :], axis=1)
 
-                print("Step: %d, train_cost: %.3f, train_reward=%3.3f" % (itr, train_cost, train_reward))
+                print("Step: %d, cost: %.3f, accuracy: %3.3f, b: %3.3f, R-b: %3.3f, p_bps: %6.6f, lr: %7.6f" %
+                      (itr, train_cost, train_reward, train_avg_b, train_rminusb, train_p_bps, train_lr))
 
-                train_cost_summary_str = sess.run(cost_summary_op, feed_dict={cost_ph: train_cost})
-                train_accuracy_summary_str = sess.run(accuracy_summary_op, feed_dict={accuracy_ph: train_reward})
+                train_cost_summary_str = sess.run(cost_summary_op, feed_dict={summary_ph: train_cost})
+                train_accuracy_summary_str = sess.run(accuracy_summary_op, feed_dict={summary_ph: train_reward})
                 train_summary_writer.add_summary(train_cost_summary_str, itr)  # write the train phase summary to event files
                 train_summary_writer.add_summary(train_accuracy_summary_str, itr)
 
             # if train_data_set.eof_checker():
 
-            if itr % 200 == 0 and itr > 0:
+            if itr % 100 == 0 and itr > 0:
 
                 saver.save(sess, logs_dir + "/model.ckpt", itr)  # model save
                 print('validation start!')
-                valid_cost, valid_accuracy, valid_list = evaluation(m_valid, valid_data_set, sess, valid_batch_size)
 
-                print('epoch : %d' % epoch)
-                print("avg_valid_cost: %.3f, avg_valid_accuracy: %.3f" % (valid_cost, valid_accuracy))
-                print('valid_accuracy wrt SNR:')
-                print('SNR_-5 : %.3f, SNR_0 : %.3f, SNR_5 : %.3f, SNR_10 : %.3f' % (valid_list[0], valid_list[1],
-                                                                                    valid_list[2], valid_list[3]))
-                valid_summary_str_cost = sess.run(cost_summary_op, feed_dict={cost_ph: valid_cost})
-                valid_summary_str_accuracy = sess.run(accuracy_summary_op, feed_dict={accuracy_ph: valid_accuracy})
-                valid_summary_writer.add_summary(valid_summary_str_cost, itr)
-                valid_summary_writer.add_summary(valid_summary_str_accuracy, itr)
-                # train_data_set.reader_initialize()
-                # print('Train data reader was initialized!')  # initialize eof flag & num_file & start index
-                epoch += 1
+                full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir, valid_summary_writer, summary_dic, itr)
 
+                # train_data_set.initialize()
     elif FLAGS.mode is 'test':
-        _, valid_accuracy = evaluation(m_valid, valid_data_set, sess, valid_batch_size)
-        print("valid_accuracy = %.3f" % valid_accuracy)
+        pass
 
 if __name__ == "__main__":
     tf.app.run()

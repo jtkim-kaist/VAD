@@ -109,7 +109,11 @@ class DataReader(object):
         self._start_idx += batch_size
         # print(self._start_idx)
         # print(self.num_samples)
-        return inputs, outputs
+
+        shuffle_indx = np.arange(inputs.shape[0])
+        np.random.shuffle(shuffle_indx)
+
+        return inputs[shuffle_indx, :], outputs[shuffle_indx, :]
 
     def normalize(self, x):
         x = (x - self.train_mean)/self.train_std
