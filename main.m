@@ -7,7 +7,7 @@ addpath(genpath('./lib'));
 %% parameter setting
 
 audio_dir = './data/clean/clean_speech.wav';
-mode = 3;           % 0 : ACAM3, 1 : bDNN, 2 : DNN, 3 : LSTM
+mode = 0;           % 0 : ACAM3, 1 : bDNN, 2 : DNN, 3 : LSTM
 threshold = 0.5;    % threshold for hard decision
 output_type = 1;    % 0 : frame based prediction, 1: sample based prediction
 

@@ -23,7 +23,7 @@ valid_file_dir = "/home/sbie/storage2/VAD_Database/NX_TIMIT_MRCG_big"
 
 norm_dir = input_dir
 
-logs_dir = "/home/sbie/github/VAD_Project_test/VAD_LSTM/logs_LSTM"
+logs_dir = "./saved_model"
 initial_logs_dir = "/home/sbie/github/VAD_Project_test/VAD_LSTM/logs_LSTM"
 ckpt_name = "/LSTM"
 
@@ -448,9 +448,9 @@ def main(argv=None):
         cost_summary_op = tf.summary.scalar("cost", summary_ph)
         accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
 
-    train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=4)
-    valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=4)
-    summary_dic = summary_generation(valid_file_dir)
+    # train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=4)
+    # valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=4)
+    # summary_dic = summary_generation(valid_file_dir)
 
     print("Done")
 
@@ -474,7 +474,7 @@ def main(argv=None):
     else:
         sess.run(tf.global_variables_initializer())  # if the checkpoint doesn't exist, do initialization
 
-    train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
+    # train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
 
     if mode is 'train':
 

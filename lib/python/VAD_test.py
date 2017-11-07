@@ -73,6 +73,7 @@ if __name__ == '__main__':
                        c_data_len=data_len)
 
         pred, label = Vl.main()
+    
     sio.savemat('./result/pred.mat', {'pred': pred})
     sio.savemat('./result/label.mat', {'label': label})
     print("done")

@@ -665,9 +665,9 @@ def main(argv=None):
         cost_summary_op = tf.summary.scalar("cost", summary_ph)
         accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
 
-    train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=4)
-    valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=4)
-    summary_dic = summary_generation(valid_file_dir)
+    # train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=4)
+    # valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=4)
+    # summary_dic = summary_generation(valid_file_dir)
 
     print("Done")
 
@@ -692,7 +692,7 @@ def main(argv=None):
     else:
         sess.run(tf.global_variables_initializer())  # if the checkpoint doesn't exist, do initialization
 
-    train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
+    # train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
 
     if str(mode) == "train":
 
