@@ -6,20 +6,20 @@ This toolkit provides the voice activity detection (VAD) code and our recorded d
 
 VAD toolkit in this project was used in the paper: 
 
-__Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model", submitted paper, 2017.__
+Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model", submitted paper, 2017.
 
 This paper will be provided as soon as it is accepted. If you want to use this toolkit before publishing the paper, please cite this
 repositoy like: 
 
-__Juntae Kim, “VAD_Toolkit”, GitHub repository, [Online] Available: https://github.com/jtkim-kaist/VAD_Toolkit, 2017.__
+Juntae Kim, “VAD_Toolkit”, GitHub repository, [Online] Available: https://github.com/jtkim-kaist/VAD_Toolkit, 2017.
 
 VAD in this toolkit follows the procedure as below:
 
-### Acoustic feature extraction
+#### Acoustic feature extraction
 
 In this toolkit, we use the The multi-resolution cochleagram (MRCG) [1] for the acoustic feature implemented by matlab.
 Note that MRCG extraction time is relatively long compared to the classifier.
-### Classifier
+#### Classifier
 
 This toolkit supports 4 types of MRCG based classifer implemented by python with tensorflow as follows:
 1. Adaptive context attention model (ACAM)
@@ -48,7 +48,7 @@ Our recored dataset is available:
 [Download](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
 
 
-### Specification
+#### Specification
 - Environments
 
 >Bus stop, construction site, park, and room.
