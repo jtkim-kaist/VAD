@@ -15,11 +15,11 @@ This toolkit follows the procedure as below:
 > According to our experiments, MRCG extraction time is relatively long compared to other acoustic features.
 - Classifier
 
-> This toolkit support 4 types of neural network based classifer implemented by python with tensorflow:
->> 1. Adaptive context attention model (ACAM)
->> 2. Boosted Deep neural network (bDNN) [1]
->> 3. Deep neural network (DNN) [1] 
->> 4. Long short term memroy recurrent neural network (LSTM) [2]
+> This toolkit support 4 types of neural network based classifer implemented by python with tensorflow as following:
+> 1. Adaptive context attention model (ACAM)
+> 2. Boosted Deep neural network (bDNN) [1]
+> 3. Deep neural network (DNN) [1] 
+> 4. Long short term memroy recurrent neural network (LSTM) [2]
 
 ## Prerequisites
 
