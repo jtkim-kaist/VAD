@@ -43,3 +43,4 @@ The result will be like following figure.
 
 ## Trouble Shooting
 ## References
+[1] Zhang, Xiao-Lei, and DeLiang Wang. “Boosting contextual information for deep neural network based voice activity detection,” IEEE Trans. Audio, Speech, Lang. Process., vol. 24, no. 2, pp. 252-264, 2016.
