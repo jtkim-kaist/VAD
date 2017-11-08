@@ -31,7 +31,7 @@ This toolkit supports 4 types of MRCG based classifer implemented by python with
 
 - Python 3
 
-- Tensorflow 1.1
+- Tensorflow 1.1-3
 
 - Matlab 2017b
 ## Example
