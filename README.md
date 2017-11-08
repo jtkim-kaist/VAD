@@ -4,7 +4,7 @@
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/32532813-2b9c59aa-c490-11e7-8a30-a39de5aedc98.jpg)
 
-Voice activity detecion (VAD) toolkit in this project was used in the paper: "Juntae Kim, Minsoo Hahan, Voice Activity Detection Based on the Adaptive Context Attention Model, Submitted paper., 2017.". 
+Voice activity detecion (VAD) toolkit in this project was used in the paper: Juntae Kim, Minsoo Hahan, "Voice Activity Detection Based on the Adaptive Context Attention Model", Submitted paper., 2017. 
 The paper will be provided as soon as it is accepted.
 
 This toolkit follows the procedure as below:
@@ -15,7 +15,7 @@ This toolkit follows the procedure as below:
 > According to our experiments, MRCG extraction time is relatively long compared to other acoustic features.
 - Classifier
 
-> This toolkit support 4 types of neural network based classifer implemented by python with tensorflow as following:
+> This toolkit supports 4 types of neural network based classifer implemented by python with tensorflow as following:
 > 1. Adaptive context attention model (ACAM)
 > 2. Boosted Deep neural network (bDNN) [1]
 > 3. Deep neural network (DNN) [1] 
