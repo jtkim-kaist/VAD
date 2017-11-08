@@ -44,7 +44,7 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 ![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
 
 ## Recorded Dataset
-Our recored dataset is available: 
+Our recored dataset is freely available: 
 [Download](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
 
 
