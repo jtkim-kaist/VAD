@@ -6,7 +6,9 @@ This toolkit provides the voice activity detection (VAD) code and our recorded d
 
 VAD toolkit in this project was used in the paper: 
 
-Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model", submitted paper, 2017.
+Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model (ACAM)", submitted paper, 2017.
+
+ACAM is based on the recurrent attention model (RAM) [1] and the implementation of RAM can be found in [jlindsey15](https://github.com/jlindsey15/RAM) and [jtkim-kaist](https://github.com/jtkim-kaist/ram_modified).
 
 This paper will be provided as soon as it is accepted. If you want to use this toolkit before publishing the paper, please cite this
 repositoy like: 
@@ -17,15 +19,15 @@ VAD in this toolkit follows the procedure as below:
 
 #### Acoustic feature extraction
 
-In this toolkit, we use the multi-resolution cochleagram (MRCG) [1] for the acoustic feature implemented by matlab.
+In this toolkit, we use the multi-resolution cochleagram (MRCG) [2] for the acoustic feature implemented by matlab.
 Note that MRCG extraction time is relatively long compared to the classifier.
 #### Classifier
 
 This toolkit supports 4 types of MRCG based classifer implemented by python with tensorflow as follows:
 1. Adaptive context attention model (ACAM)
-2. Boosted deep neural network (bDNN) [1]
-3. Deep neural network (DNN) [1] 
-4. Long short term memory recurrent neural network (LSTM-RNN) [2]
+2. Boosted deep neural network (bDNN) [2]
+3. Deep neural network (DNN) [2] 
+4. Long short term memory recurrent neural network (LSTM-RNN) [3]
 
 ## Prerequisites
 
@@ -83,6 +85,8 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ## References
-[1] Zhang, Xiao-Lei, and DeLiang Wang. “Boosting contextual information for deep neural network based voice activity detection,” IEEE Trans. Audio, Speech, Lang. Process., vol. 24, no. 2, pp. 252-264, 2016.
+[1] J. Ba, V. Mnih, and K. Kavukcuoglu, “Multiple object recognition with visual attention,” arXiv preprint arXiv, 1412.7755, 2014.
 
-[2] Zazo Candil, Ruben, et al. “Feature learning with raw-waveform CLDNNs for Voice Activity Detection.”, 2016.
+[2] Zhang, Xiao-Lei, and DeLiang Wang. “Boosting contextual information for deep neural network based voice activity detection,” IEEE Trans. Audio, Speech, Lang. Process., vol. 24, no. 2, pp. 252-264, 2016.
+
+[3] Zazo Candil, Ruben, et al. “Feature learning with raw-waveform CLDNNs for Voice Activity Detection.”, 2016.
