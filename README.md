@@ -1,5 +1,6 @@
 # VAD_Toolkit
 ### Introduction
+![alt tag](https://user-images.githubusercontent.com/24668469/32532813-2b9c59aa-c490-11e7-8a30-a39de5aedc98.jpg)
 ### Prerequisites
 - Python 3
 
