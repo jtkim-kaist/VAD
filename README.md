@@ -4,7 +4,8 @@ This toolkit provides the voice activity detection (VAD) code and our recorded d
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/32532813-2b9c59aa-c490-11e7-8a30-a39de5aedc98.jpg)
 
-VAD toolkit in this project was used in the paper:
+VAD toolkit in this project was used in the paper: 
+
 Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model", submitted paper, 2017. 
 This paper will be provided as soon as it is accepted.
 
