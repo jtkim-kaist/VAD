@@ -17,7 +17,7 @@ VAD in this toolkit follows the procedure as below:
 
 #### Acoustic feature extraction
 
-In this toolkit, we use the The multi-resolution cochleagram (MRCG) [1] for the acoustic feature implemented by matlab.
+In this toolkit, we use the multi-resolution cochleagram (MRCG) [1] for the acoustic feature implemented by matlab.
 Note that MRCG extraction time is relatively long compared to the classifier.
 #### Classifier
 
@@ -25,7 +25,7 @@ This toolkit supports 4 types of MRCG based classifer implemented by python with
 1. Adaptive context attention model (ACAM)
 2. Boosted deep neural network (bDNN) [1]
 3. Deep neural network (DNN) [1] 
-4. Long short term memroy recurrent neural network (LSTM)
+4. Long short term memory recurrent neural network (LSTM-RNN) [2]
 
 ## Prerequisites
 
@@ -84,3 +84,4 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ## References
 [1] Zhang, Xiao-Lei, and DeLiang Wang. “Boosting contextual information for deep neural network based voice activity detection,” IEEE Trans. Audio, Speech, Lang. Process., vol. 24, no. 2, pp. 252-264, 2016.
+[2] Zazo Candil, Ruben, et al. “Feature learning with raw-waveform CLDNNs for Voice Activity Detection.”, 2016.
