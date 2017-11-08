@@ -47,6 +47,9 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 Our recored dataset is available: 
 [Download](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
 
+
+#### Specification
+
 ## Trouble Shooting
 If you find any errors in the code, please contact to us.
 
