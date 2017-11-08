@@ -10,8 +10,7 @@ Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Contex
 
 ACAM is based on the recurrent attention model (RAM) [1] and the implementation of RAM can be found in [jlindsey15](https://github.com/jlindsey15/RAM) and [jtkim-kaist](https://github.com/jtkim-kaist/ram_modified)'s repository.
 
-This paper will be provided as soon as it is accepted. If you want to use this toolkit before publishing the paper, please cite this
-repositoy like: 
+The submitted paper will be provided as soon as it is accepted. If you want to use this toolkit before publishing the paper, please cite this repositoy like: 
 
 Juntae Kim: "VAD_Toolkit", GitHub repository, [Online] Available: https://github.com/jtkim-kaist/VAD_Toolkit, 2017.
 
