@@ -1,4 +1,4 @@
-# VAD_Toolkit
+# Voice Activity Detection Toolkit
 This toolkit provides the voice activity detection (VAD) code and our recorded dataset.
 ## Introduction
 
