@@ -37,13 +37,13 @@ This toolkit supports 4 types of MRCG based classifer implemented by python with
 ## Example
 
 The example matlab script is `main.m`. Just run it on the matlab.
-The result will be like following figure.
+The result will be like following figure. To apply the toolkit to other speech data, the speech data should be sampled with 16kHz sampling frequency.
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
 
 ## Recorded Dataset
-
-[Link](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
+Our recored dataset 
+[Download](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
 
 ## Trouble Shooting
 ## Copyright
