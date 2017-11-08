@@ -48,6 +48,9 @@ Our recored dataset
 [Download](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
 
 ## Trouble Shooting
+If you find any errors in the code, please contact to us.
+
+E-mail: jtkim@kaist.ac.kr
 ## Copyright
 Copyright (c) 2017 Speech and Audio Information Laboratory, KAIST, South Korea
 
