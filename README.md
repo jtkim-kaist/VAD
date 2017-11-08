@@ -6,11 +6,13 @@
 Voice activity detecion (VAD) in this toolkit follows the procedure as below:
 
 - Acoustic feature extraction
+
 >> In this Toolkit, we use the The multi-resolution cochleagram (MRCG)[1] for the acoustic feature implemented by matlab.
 >> According to our experiments, MRCG extraction time is relatively long compared to other acoustic features.
 - Classifier
+
 >> This Toolkit support 4 types of neural network based classifer:
->> -
+
 ### Prerequisites
 - Python 3
 
