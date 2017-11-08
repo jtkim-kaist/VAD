@@ -11,11 +11,11 @@ This paper will be provided as soon as it is accepted.
 
 VAD in this toolkit follows the procedure as below:
 
-- Acoustic feature extraction
+#### Acoustic feature extraction
 
 In this toolkit, we use the The multi-resolution cochleagram (MRCG) [1] for the acoustic feature implemented by matlab.
 Note that MRCG extraction time is relatively long compared to the classifier.
-- Classifier
+#### Classifier
 
 This toolkit supports 4 types of MRCG based classifer implemented by python with tensorflow as follows:
 1. Adaptive context attention model (ACAM)
