@@ -6,12 +6,12 @@ This toolkit provides the voice activity detection (VAD) code and our recorded d
 
 VAD toolkit in this project was used in the paper: 
 
-Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model", submitted paper, 2017.
+*Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model", submitted paper, 2017.*
 
 This paper will be provided as soon as it is accepted. If you want to use this toolkit before publishing the paper, please cite this
 repositoy like: 
 
-Juntae Kim, “VAD_Toolkit”, GitHub repository, [Online] Available: https://github.com/jtkim-kaist/VAD_Toolkit, 2017.
+*Juntae Kim, “VAD_Toolkit”, GitHub repository, [Online] Available: https://github.com/jtkim-kaist/VAD_Toolkit, 2017.*
 
 VAD in this toolkit follows the procedure as below:
 
@@ -51,11 +51,11 @@ Our recored dataset is available:
 #### Specification
 - Environments
 
-Bus stop, construction site, park, and room.
+>Bus stop, construction site, park, and room.
 
 - Recording device
 
-A smart phone (Samsung Galaxy 8)
+>A smart phone (Samsung Galaxy 8)
 
 At each place, conversational speech by two Korean male speakers was recorded. The ground truth labels are manually annotated. Because the recording was carried out in the real world, unexpected noises are included to the dataset such as the crying of baby, the chirping of insects, mouse click sound, and etc. The details of dataset is described in the following table:
 
