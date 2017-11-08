@@ -8,7 +8,9 @@ VAD toolkit in this project was used in the paper:
 
 Juntae Kim, Minsoo Hahan: "Voice Activity Detection Based on the Adaptive Context Attention Model", submitted paper, 2017. 
 This paper will be provided as soon as it is accepted. If you want to use this toolkit before publishing the paper, please cite this
-repositoy like: Juntae Kim, “VAD_Toolkit”, GitHub repository, [Online] Available: https://github.com/jtkim-kaist/VAD_Toolkit, 2017.
+repositoy like: 
+
+Juntae Kim, “VAD_Toolkit”, GitHub repository, [Online] Available: https://github.com/jtkim-kaist/VAD_Toolkit, 2017.
 
 VAD in this toolkit follows the procedure as below:
 
