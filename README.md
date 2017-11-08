@@ -49,7 +49,11 @@ Our recored dataset is available:
 
 
 #### Specification
-
+|   | Bus stop | Cons. site  | Park | Room | Overall |
+| ------------- | ----------------------------- | ------------- | ------------- | ------------- | ------------- |
+| Dur. (min) | 30.02 | 30.03 | 30.07 | 30.05 | 120.17 |
+| Avg. SNR (dB) | 5.61 | 2.05 | 5.71 | 18.26 | 7.91 |
+| % of speech | 40.12 | 26.71 | 26.85 | 30.44 | 31.03 |
 ## Trouble Shooting
 If you find any errors in the code, please contact to us.
 
