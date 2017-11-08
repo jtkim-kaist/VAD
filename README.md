@@ -57,7 +57,7 @@ Our recored dataset is available:
 
 >A smart phone (Samsung Galaxy 8)
 
-At each place, conversational speech by two Korean male speakers was recorded. The ground truth labels are manually annotated. Because the recording was carried out in the real world, unexpected noises are included to the dataset such as the crying of baby, the chirping of insects, mouse click sound, and etc. The details of dataset is described in the following table:
+At each environment, conversational speech by two Korean male speakers was recorded. The ground truth labels are manually annotated. Because the recording was carried out in the real world, unexpected noises are included to the dataset such as the crying of baby, the chirping of insects, mouse click sound, and etc. The details of dataset is described in the following table:
 
 
 |               | Bus stop      | Cons. site    | Park          | Room          | Overall       |
