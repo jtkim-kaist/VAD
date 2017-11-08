@@ -13,15 +13,15 @@ VAD in this toolkit follows the procedure as below:
 
 - Acoustic feature extraction
 
-> In this toolkit, we use the The multi-resolution cochleagram (MRCG) [1] for the acoustic feature implemented by matlab.
-> According to our experiments, MRCG extraction time is relatively long compared to other acoustic features.
+In this toolkit, we use the The multi-resolution cochleagram (MRCG) [1] for the acoustic feature implemented by matlab.
+Note that MRCG extraction time is relatively long compared to the classifier.
 - Classifier
 
-> This toolkit supports 4 types of MRCG based classifer implemented by python with tensorflow as follows:
-> 1. Adaptive context attention model (ACAM)
-> 2. Boosted deep neural network (bDNN) [1]
-> 3. Deep neural network (DNN) [1] 
-> 4. Long short term memroy recurrent neural network (LSTM)
+This toolkit supports 4 types of MRCG based classifer implemented by python with tensorflow as follows:
+1. Adaptive context attention model (ACAM)
+2. Boosted deep neural network (bDNN) [1]
+3. Deep neural network (DNN) [1] 
+4. Long short term memroy recurrent neural network (LSTM)
 
 ## Prerequisites
 
