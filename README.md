@@ -84,7 +84,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ## References
-[1] J. Ba, V. Mnih, and K. Kavukcuoglu, “Multiple object recognition with visual attention,” arXiv preprint arXiv, 1412.7755, 2014.
+[1] J. Ba, V. Minh, and K. Kavukcuoglu, “Multiple object recognition with visual attention,” arXiv preprint arXiv, 1412.7755, 2014.
 
 [2] Zhang, Xiao-Lei, and DeLiang Wang. “Boosting contextual information for deep neural network based voice activity detection,” IEEE Trans. Audio, Speech, Lang. Process., vol. 24, no. 2, pp. 252-264, 2016.
 
