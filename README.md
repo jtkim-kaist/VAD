@@ -46,7 +46,21 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 ## Training
 
 Current version only supports DNN based training. We will update training script for other models.
+```curdir=`pwd`
+pylibdir=`realpath $curdir/lib/python`
+train=`realpath $pylibdir/train.py`
+ckpt_update=`realpath $pylibdir/update_ckpt.py`
 
+# train script options
+# m 0 : DNN
+# e : extract MRCG feature (1) or not (0)
+
+python3 $train -m 0 -e 1 --train_step=100 --prj_dir=$curdir
+
+# ckpt_update script options
+# u : update checkpoint from trained model (1) or restore checkpoint to default (0)
+# Note that when u==0, the normalization factor is also restored to default.
+python3 $ckpt_update -u 1 --model=DNN --prj_dir=$curdir```
 ## Recorded Dataset
 Our recored dataset is freely available: 
 [Download](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
