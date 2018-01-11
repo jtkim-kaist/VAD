@@ -47,7 +47,8 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
 The training procedure has 2 steps: (i) MRCG extraction; (ii) Model training.
 
-Note: Current version only supports DNN based training. We will update training script for other models.
+Note: Do not forget adding the path to this project in the matlab. Current version only supports DNN based training. We will update training script for other models.
+
 ```
 # train.sh
 # train script options
