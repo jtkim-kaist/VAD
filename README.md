@@ -45,18 +45,18 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 ![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
 ## Training
 We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
-The training procedure has 2 steps: (i) MRCG extraction; (ii) Model training. The MRCG extraction time is somewhat long so if you pass this step if you already have MRCG feature. The description of `train.sh` is as followed.
+The training procedure has 2 steps: (i) MRCG extraction; (ii) Model training.
 
 Note: Current version only supports DNN based training. We will update training script for other models.
 ```
 # train script options
 # m 0 : DNN
-# e : extract MRCG feature (1) or not (0)
+# e : extract MRCG feature (1) or not (0). The MRCG extraction time is somewhat long so you can pass the feature extraction step if you already have MRCG feature.
 
 python3 $train -m 0 -e 1 --train_step=100 --prj_dir=$curdir
 
 # ckpt_update script options
-# u : update checkpoint from trained model (1) or restore checkpoint to default (0)
+# u : update checkpoint from trained model (1) or restore checkpoint to default (0). # After training you should update the model checkpoint with the normalization factor.
 # Note that when u==0, the normalization factor is also restored to default.
 python3 $ckpt_update -u 1 --model=DNN --prj_dir=$curdir
 ```
