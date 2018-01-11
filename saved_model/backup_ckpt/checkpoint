@@ -1,0 +1,3 @@
+model_checkpoint_path: "/home/sbie/github/VAD_bDNN_baseline/logs_proposed_multi/model9912and51.ckpt-4"
+all_model_checkpoint_paths: "/home/sbie/github/VAD_bDNN_baseline/logs_proposed_multi/model9918and41.ckpt-2"
+all_model_checkpoint_paths: "/home/sbie/github/VAD_bDNN_baseline/logs_proposed_multi/model9912and51.ckpt-4"

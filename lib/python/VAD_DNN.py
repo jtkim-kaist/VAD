@@ -39,10 +39,11 @@ if reset:
 summary_list = ["cost", "accuracy_SNR_-5", "accuracy_SNR_0", "accuracy_SNR_5", "accuracy_SNR_10",
                 "accuracy_across_all_SNRs"]
 
-learning_rate = 0.00733
+# learning_rate = 0.00733
+learning_rate = 0.0001
 eval_num_batches = 2e5
 SMALL_NUM = 1e-4
-max_epoch = int(51)
+max_epoch = int(1000)
 dropout_rate = 0.5
 
 decay = 0.9  # batch normalization decay factor
@@ -52,8 +53,10 @@ eval_th = 0.5
 th = 0.5
 num_hidden_1 = 512
 num_hidden_2 = 512
+model_config = {"w": w, "u": u, "num_hidden_1": num_hidden_1, "num_hidden_2": num_hidden_2}
 
-batch_size = 4096 + 2*w # batch_size = 32
+
+batch_size = 4096 + 2*w  # batch_size = 32
 valid_batch_size = batch_size
 
 assert (w-1) % u == 0, "w-1 must be divisible by u"
@@ -65,6 +68,33 @@ bdnn_inputsize = int(bdnn_winlen * num_features)
 bdnn_outputsize = 2
 data_len = None
 eval_type = 2
+
+
+def train_config(c_train_dir, c_valid_dir, c_logs_dir, c_batch_size_eval, c_max_epoch, c_mode):
+
+    global file_dir
+    global input_dir
+    global output_dir
+    global valid_file_dir
+    global norm_dir
+    global initial_logs_dir
+    global logs_dir
+    global ckpt_name
+    global batch_size
+    global valid_batch_size
+    global mode
+    global max_epoch
+
+    file_dir = c_train_dir
+    valid_file_dir = c_valid_dir
+    input_dir = file_dir
+    output_dir = file_dir + "/Labels"
+
+    norm_dir = file_dir
+    initial_logs_dir = logs_dir = c_logs_dir
+    batch_size = valid_batch_size = c_batch_size_eval + 2 * w
+    max_epoch = c_max_epoch
+    mode = c_mode
 
 
 def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_batch_size_eval, c_data_len):
@@ -304,6 +334,7 @@ def dense_to_one_hot(labels_dense, num_classes=2):
 
 
 class Model(object):
+
     def __init__(self, is_training=True):
 
         self.keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
@@ -350,13 +381,15 @@ def main(argv=None):
     print("Setting up summary op...")
 
     summary_ph = tf.placeholder(dtype=tf.float32)
-    with tf.variable_scope("Aggregated_Training_Parts"):
+    with tf.variable_scope("Training_procedure"):
 
         cost_summary_op = tf.summary.scalar("cost", summary_ph)
         accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
 
-    # train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=2)
-    # valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=2)
+    if mode is 'train':
+        train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=2)
+        valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=2)
+
     # summary_dic = summary_generation(valid_file_dir)
 
     print("Done")
@@ -376,12 +409,17 @@ def main(argv=None):
 
     if ckpt and ckpt.model_checkpoint_path:  # model restore
         print("Model restored...")
-        saver.restore(sess, initial_logs_dir+ckpt_name)
+
+        if mode is 'train':
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            saver.restore(sess, initial_logs_dir+ckpt_name)
+
         print("Done")
     else:
         sess.run(tf.global_variables_initializer())  # if the checkpoint doesn't exist, do initialization
-
-    # train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
+    if mode is 'train':
+        train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
 
     if mode is 'train':
 
@@ -400,7 +438,13 @@ def main(argv=None):
 
             if itr % 10 == 0 and itr >= 0:
 
-                train_cost, train_accuracy = sess.run([m_train.cost, m_train.accuracy], feed_dict=feed_dict)
+                # train_cost, train_softpred, train_raw_labels \
+                #     = sess.run([m_train.cost, m_train.softpred, m_train.raw_labels], feed_dict=feed_dict)
+                # fpr, tpr, thresholds = metrics.roc_curve(train_raw_labels, train_softpred, pos_label=1)
+                # train_auc = metrics.auc(fpr, tpr)
+
+                train_cost, train_accuracy \
+                    = sess.run([m_train.cost, m_train.accuracy], feed_dict=feed_dict)
 
                 print("Step: %d, train_cost: %.4f, train_accuracy=%4.4f" % (itr, train_cost, train_accuracy*100))
 
@@ -414,7 +458,17 @@ def main(argv=None):
 
                 saver.save(sess, logs_dir + "/model.ckpt", itr)  # model save
                 print('validation start!')
-                full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir, valid_summary_writer, summary_dic, itr)
+                valid_accuracy, valid_cost = \
+                    utils.do_validation(m_valid, sess, valid_batch_size, valid_file_dir, norm_dir,
+                                        model_config, type='DNN')
+
+                print("valid_cost: %.4f, valid_accuracy=%4.4f" % (valid_cost, valid_accuracy * 100))
+                valid_cost_summary_str = sess.run(cost_summary_op, feed_dict={summary_ph: valid_cost})
+                valid_accuracy_summary_str = sess.run(accuracy_summary_op, feed_dict={summary_ph: valid_accuracy})
+                valid_summary_writer.add_summary(valid_cost_summary_str, itr)  # write the train phase summary to event files
+                valid_summary_writer.add_summary(valid_accuracy_summary_str, itr)
+
+                # full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir, valid_summary_writer, summary_dic, itr)
 
     elif mode is 'test':
         # full_evaluation(m_valid, sess, valid_batch_size, test_file_dir, valid_summary_writer, summary_dic, 0)
@@ -422,10 +476,10 @@ def main(argv=None):
         final_softout, final_label = utils.vad_test(m_valid, sess, valid_batch_size, test_file_dir, norm_dir, data_len,
                                                     eval_type)
 
-    if data_len is None:
-        return final_softout, final_label
-    else:
-        return final_softout[0:data_len, :], final_label[0:data_len, :]
+        if data_len is None:
+            return final_softout, final_label
+        else:
+            return final_softout[0:data_len, :], final_label[0:data_len, :]
 
 if __name__ == "__main__":
     tf.app.run()

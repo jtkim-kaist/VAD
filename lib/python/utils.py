@@ -11,6 +11,7 @@ import scipy.io
 import re
 import data_reader_bDNN as dr
 import data_reader_DNN as dnn_dr
+from sklearn import metrics
 
 __author__ = 'Juntae'
 
@@ -536,3 +537,61 @@ def dense_to_one_hot(labels_dense, num_classes=2):
     labels_one_hot = np.zeros((num_labels, num_classes))
     labels_one_hot.flat[(index_offset + labels_dense.ravel()).astype(int)] = 1
     return labels_one_hot.astype(np.float32)
+
+
+def do_validation(m_valid, sess, valid_batch_size, valid_file_dir, norm_dir, model_config, type='DNN'):
+
+    # dataset reader setting #
+
+    if type is 'DNN':
+        valid_data_set = dnn_dr.DataReader(valid_file_dir, valid_file_dir+'/Labels', norm_dir, w=model_config['w'],
+                                           u=model_config['u'], name="eval")
+
+    avg_valid_accuracy = 0.
+    avg_valid_cost = 0.
+    itr_sum = 0.
+
+    accuracy_list = [0 for i in range(valid_data_set._file_len)]
+    cost_list = [0 for i in range(valid_data_set._file_len)]
+    itr_file = 0
+    while True:
+
+        valid_inputs, valid_labels = valid_data_set.next_batch(valid_batch_size)
+
+        if valid_data_set.file_change_checker():
+            # print(itr_file)
+            accuracy_list[itr_file] = avg_valid_accuracy / itr_sum
+            cost_list[itr_file] = avg_valid_cost / itr_sum
+            avg_valid_cost = 0.
+            avg_valid_accuracy = 0.
+            itr_sum = 0
+            itr_file += 1
+            valid_data_set.file_change_initialize()
+
+        if valid_data_set.eof_checker():
+            valid_data_set.reader_initialize()
+            print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+            break
+
+        one_hot_labels = valid_labels.reshape((-1, 1))
+        one_hot_labels = dense_to_one_hot(one_hot_labels, num_classes=2)
+
+        feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: one_hot_labels,
+                     m_valid.keep_probability: 1}
+
+        # valid_cost, valid_softpred, valid_raw_labels\
+        #     = sess.run([m_valid.cost, m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
+        #
+        # fpr, tpr, thresholds = metrics.roc_curve(valid_raw_labels, valid_softpred, pos_label=1)
+        # valid_auc = metrics.auc(fpr, tpr)
+
+        valid_cost, valid_accuracy = sess.run([m_valid.cost, m_valid.accuracy], feed_dict=feed_dict)
+
+        avg_valid_accuracy += valid_accuracy
+        avg_valid_cost += valid_cost
+        itr_sum += 1
+
+    total_avg_valid_accuracy = np.asscalar(np.mean(np.asarray(accuracy_list)))
+    total_avg_valid_cost = np.asscalar(np.mean(np.asarray(cost_list)))
+
+    return total_avg_valid_accuracy, total_avg_valid_cost
