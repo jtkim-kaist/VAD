@@ -16,12 +16,12 @@ import os, getopt
 if __name__ == '__main__':
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hm:e:', ["train_step=", "prj_dir="])
+        opts, args = getopt.getopt(sys.argv[1:], 'hm:e:', ["train_step=", "batch_size=", "prj_dir="])
     except getopt.GetoptError as err:
         print(str(err))
         sys.exit(1)
 
-    if len(opts) != 4:
+    if len(opts) != 5:
         print("arguments are not enough.")
         sys.exit(1)
 
@@ -34,8 +34,11 @@ if __name__ == '__main__':
             extract_feat = int(arg)
         elif opt == '--train_step':
             train_step = int(arg)
+        elif opt == '--batch_size':
+            batch_size = int(arg)
         elif opt == '--prj_dir':
             prj_dir = str(arg)
+
 
     data_dir = prj_dir + '/data/raw'
     print(data_dir)
@@ -70,7 +73,7 @@ if __name__ == '__main__':
         os.system("mkdir " + logs_dir + '/train')
         os.system("mkdir " + logs_dir + '/valid')
 
-        Vd.train_config(save_dir+'/train', save_dir+'/valid', prj_dir+'/logs', 256,
+        Vd.train_config(save_dir+'/train', save_dir+'/valid', prj_dir+'/logs', batch_size,
                         train_step, 'train')
 
         Vd.main()
