@@ -88,6 +88,10 @@ At each environment, conversational speech by two Korean male speakers was recor
 | Dur. (min)    | 30.02         | 30.03         | 30.07         | 30.05         | 120.17        |
 | Avg. SNR (dB) | 5.61          | 2.05          | 5.71          | 18.26         | 7.91          |
 | % of speech   | 40.12         | 26.71         | 26.85         | 30.44         | 31.03         |
+## TODO List
+1. Freezing the graph for running the model fast.
+2. Training script for bDNN, LSTM, ACAM
+3. Although MRCG show good performance but extraction time is somewhat long, therefore we will substitute it to other feature such as spectrogram.
 ## Trouble Shooting
 If you find any errors in the code, please contact to us.
 
