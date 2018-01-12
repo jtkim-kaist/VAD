@@ -10,7 +10,6 @@ ckpt_update=`realpath $pylibdir/update_ckpt.py`
 
 python3 $train -m 0 -e 1 --train_step=100 --batch_size=256 --prj_dir=$curdir
 
-a
 # ckpt_update script options
 # u : update checkpoint from trained model (1) or restore checkpoint to default (0)
 # Note that when u==0, the normalization factor is also restored to default.
