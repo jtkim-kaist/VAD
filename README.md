@@ -90,7 +90,7 @@ At each environment, conversational speech by two Korean male speakers was recor
 | % of speech   | 40.12         | 26.71         | 26.85         | 30.44         | 31.03         |
 ## TODO List
 1. Freezing the graph for running the model fast.
-2. Training script for bDNN, LSTM, ACAM
+2. Training script for bDNN, LSTM, ACAM --> will be updated until 2018-01-26
 3. Although MRCG show good performance but extraction time is somewhat long, therefore we will substitute it to other feature such as spectrogram.
 ## Trouble Shooting
 If you find any errors in the code, please contact to us.
