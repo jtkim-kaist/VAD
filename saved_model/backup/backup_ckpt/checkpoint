@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/sbie/storage3/github/VAD_Toolkit/VAD/saved_model/backup/backup_ckpt/model_LSTM.ckpt-0"
+all_model_checkpoint_paths: "/home/sbie/storage3/github/VAD_Toolkit/VAD/saved_model/backup/backup_ckpt/model_LSTM.ckpt-0"

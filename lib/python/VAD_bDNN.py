@@ -2,8 +2,8 @@ import tensorflow as tf
 import numpy as np
 import utils as utils
 import re
-import data_reader_bDNN as dr
-import os
+import data_reader_bDNN_v2 as dr
+import os, sys
 from sklearn import metrics
 from scipy.optimize import brentq
 from scipy.interpolate import interp1d
@@ -70,6 +70,35 @@ eval_type = 1
 # initLr = 5e-2
 
 
+def train_config(c_train_dir, c_valid_dir, c_logs_dir, c_batch_size_eval, c_max_epoch, c_mode):
+
+    global file_dir
+    global input_dir
+    global output_dir
+    global valid_file_dir
+    global norm_dir
+    global initial_logs_dir
+    global logs_dir
+    global ckpt_name
+    global batch_size
+    global valid_batch_size
+    global mode
+    global max_epoch
+
+    file_dir = c_train_dir
+    valid_file_dir = c_valid_dir
+    input_dir = file_dir
+    output_dir = file_dir + "/Labels"
+
+    norm_dir = file_dir
+    initial_logs_dir = logs_dir = c_logs_dir
+    # batch_size = valid_batch_size = c_batch_size_eval + 2 * w
+    batch_size = valid_batch_size = c_batch_size_eval
+
+    max_epoch = c_max_epoch
+    mode = c_mode
+
+
 def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_batch_size_eval, c_data_len):
     global test_file_dir
     global norm_dir
@@ -112,7 +141,7 @@ def inference(inputs, keep_prob, is_training=True):
     logits = affine_transform(h2_out, bdnn_outputsize, name="output")
     logits = tf.sigmoid(logits)
     logits = tf.reshape(logits, [-1, int(bdnn_outputsize)])
-
+    logits = tf.identity(logits, name="logits")
     return logits
 
 
@@ -130,8 +159,8 @@ def train(loss_val, var_list):
     return optimizer.apply_gradients(grads, global_step=global_step)
 
 
-def bdnn_prediction(bdnn_batch_size, logits, threshold=th):
-
+def bdnn_prediction(batch_size, logits, threshold=th):
+    bdnn_batch_size = batch_size + 2*w
     result = np.zeros((bdnn_batch_size, 1))
     indx = np.arange(bdnn_batch_size) + 1
     indx = indx.reshape((bdnn_batch_size, 1))
@@ -343,7 +372,41 @@ class Model(object):
         self.train_op = train(cost, trainable_var)
 
 
-def main(argv=None):
+def main(prj_dir=None, model=None, mode=None):
+
+    #                               Configuration Part                       #
+    if mode is 'train':
+
+        import path_setting as ps
+
+        set_path = ps.PathSetting(prj_dir, model)
+        logs_dir = initial_logs_dir = set_path.logs_dir
+        input_dir = set_path.input_dir
+        output_dir = set_path.output_dir
+        norm_dir = set_path.norm_dir
+        valid_file_dir = set_path.valid_file_dir
+
+        sys.path.insert(0, prj_dir+'/configure/bDNN')
+        import config as cg
+
+        global initLr, dropout_rate, max_epoch, batch_size, valid_batch_size
+        initLr = cg.lr
+        dropout_rate = cg.dropout_rate
+        max_epoch = cg.max_epoch
+        batch_size = valid_batch_size = cg.batch_size
+
+        global w, u
+        w = cg.w
+        u = cg.u
+
+        global bdnn_winlen, bdnn_inputsize, bdnn_outputsize
+        bdnn_winlen = (((w-1) / u) * 2) + 3
+        bdnn_inputsize = int(bdnn_winlen * num_features)
+        bdnn_outputsize = int(bdnn_winlen)
+
+        global num_hidden_1, num_hidden_2
+        num_hidden_1 = cg.num_hidden_1
+        num_hidden_2 = cg.num_hidden_2
 
     #                               Graph Part                                 #
 
@@ -361,7 +424,7 @@ def main(argv=None):
     print("Setting up summary op...")
     summary_ph = tf.placeholder(dtype=tf.float32)
 
-    with tf.variable_scope("Aggregated_Training_Parts"):
+    with tf.variable_scope("Training_procedure"):
 
         cost_summary_op = tf.summary.scalar("cost", summary_ph)
         accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
@@ -385,13 +448,26 @@ def main(argv=None):
     sess_config.gpu_options.allow_growth = True
     sess = tf.Session(config=sess_config)
 
+    if mode is 'train':
+        train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', sess.graph, max_queue=2)
+        valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=2)
+
     if ckpt and ckpt.model_checkpoint_path:  # model restore
         print("Model restored...")
-        saver.restore(sess, initial_logs_dir+ckpt_name)
+
+        if mode is 'train':
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            saver.restore(sess, initial_logs_dir+ckpt_name)
+            # print(initial_logs_dir)
+            # saver.save(sess, initial_logs_dir + "/model_bDNN.ckpt", 0)  # model save
+
         print("Done")
     else:
         sess.run(tf.global_variables_initializer())  # if the checkpoint doesn't exist, do initialization
 
+    if mode is 'train':
+        train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
     # train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
 
     if mode is 'train':
@@ -425,11 +501,21 @@ def main(argv=None):
                 train_summary_writer.add_summary(train_accuracy_summary_str, itr)
 
             # if train_data_set.eof_checker():
-            if itr % 10 == 0 and itr >= 300:
+            if itr % 50 == 0 and itr > 0:
 
                 saver.save(sess, logs_dir + "/model.ckpt", itr)  # model save
                 print('validation start!')
-                full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir, valid_summary_writer, summary_dic, itr)
+
+                valid_accuracy, valid_cost = \
+                    utils.do_validation(m_valid, sess, valid_file_dir, norm_dir, type='bDNN')
+
+                print("valid_cost: %.4f, valid_accuracy=%4.4f" % (valid_cost, valid_accuracy * 100))
+                valid_cost_summary_str = sess.run(cost_summary_op, feed_dict={summary_ph: valid_cost})
+                valid_accuracy_summary_str = sess.run(accuracy_summary_op, feed_dict={summary_ph: valid_accuracy})
+                valid_summary_writer.add_summary(valid_cost_summary_str, itr)  # write the train phase summary to event files
+                valid_summary_writer.add_summary(valid_accuracy_summary_str, itr)
+
+                # full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir, valid_summary_writer, summary_dic, itr)
                 # train_data_set.reader_initialize()
                 # print('Train data reader was initialized!')  # initialize eof flag & num_file & start index
 
@@ -439,10 +525,10 @@ def main(argv=None):
         final_softout, final_label = utils.vad_test(m_valid, sess, valid_batch_size, test_file_dir, norm_dir, data_len,
                                                     eval_type)
 
-    if data_len is None:
-        return final_softout, final_label
-    else:
-        return final_softout[0:data_len, :], final_label[0:data_len, :]
+        if data_len is None:
+            return final_softout, final_label
+        else:
+            return final_softout[0:data_len, :], final_label[0:data_len, :]
 if __name__ == "__main__":
     tf.app.run()
 

@@ -1,9 +1,9 @@
 import tensorflow as tf
 import numpy as np
-import utils_jskim as utils
+import utils as utils
 import re
 import data_reader_RNN as dr
-import os
+import sys, os
 import matplotlib.pyplot as plt
 from tensorflow.contrib import rnn
 from sklearn import metrics
@@ -49,25 +49,24 @@ max_epoch = int(1e5)
 dropout_rate = 0.5
 
 decay = 0.9  # batch normalization decay factor
-w = 5  # w default = 19
+target_delay = 5  # target_delay default = 19
 u = 9  # u default = 9
 eval_th = 0.6
 th = 0.5
 lstm_cell_size = 256
-num_hidden_1 = 128
-num_hidden_2 = 256
-num_hidden_3 = 128
+num_layers = 3
 
+model_config = {'target_delay': target_delay, "u": u}
 seq_size = 20
 batch_num = 200
 batch_size = batch_num*seq_size # batch_size = 32
 valid_batch_size = batch_size
 
-# assert (w-1) % u == 0, "w-1 must be divisible by u"
+# assert (target_delay-1) % u == 0, "target_delay-1 must be divisible by u"
 
 width = 768
 num_features = 768  # MRCG feature
-bdnn_winlen = (((w-1) / u) * 2) + 3
+bdnn_winlen = (((target_delay-1) / u) * 2) + 3
 
 # bdnn_inputsize = int(bdnn_winlen * num_features)
 bdnn_inputsize = num_features
@@ -77,7 +76,41 @@ scope_name = 'RNN_scope'
 eval_type = 2
 
 
-def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_batch_size_eval, c_data_len):
+def train_config(c_train_dir, c_valid_dir, c_logs_dir, c_seq_size, c_batch_num, c_max_epoch, c_mode):
+
+    global file_dir
+    global input_dir
+    global output_dir
+    global valid_file_dir
+    global norm_dir
+    global initial_logs_dir
+    global logs_dir
+    global ckpt_name
+    global batch_size
+    global valid_batch_size
+    global mode
+    global max_epoch
+    global seq_size
+    global batch_num
+
+    file_dir = c_train_dir
+    valid_file_dir = c_valid_dir
+    input_dir = file_dir
+    output_dir = file_dir + "/Labels"
+
+    norm_dir = file_dir
+    initial_logs_dir = logs_dir = c_logs_dir
+    # batch_size = valid_batch_size = c_batch_size_eval + 2 * target_delay
+    seq_size = c_seq_size
+    batch_num = c_batch_num
+
+    batch_size = valid_batch_size = c_seq_size * c_batch_num
+
+    max_epoch = c_max_epoch
+    mode = c_mode
+
+
+def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_seq_size, c_batch_num, c_data_len):
 
     global test_file_dir
     global norm_dir
@@ -87,12 +120,19 @@ def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_batch_size_eval, c
     global batch_size
     global data_len
     global batch_num
+    global seq_size
+    global batch_num
+
     test_file_dir = c_test_dir
     norm_dir = c_norm_dir
     initial_logs_dir = c_initial_logs_dir
-    valid_batch_size = batch_size = c_batch_size_eval
+
+    seq_size = c_seq_size
+    batch_num = c_batch_num
+    valid_batch_size = batch_size = c_seq_size * c_batch_num
     data_len = c_data_len
     batch_num = batch_size/seq_size
+
 
 def affine_transform(x, output_dim, name=None):
     """
@@ -127,12 +167,11 @@ def inference(inputs, keep_prob, is_training=True, reuse=None):
     # c1_out = affine_transform(inputs, num_hidden_1, name="hidden_1")
     # inputs_shape = inputs.get_shape().as_list()
     with tf.variable_scope(scope_name):
-        print('inference time')
         # print(inputs.get_shape().as_list())
-        in_rnn = rnn_in(inputs, batch_num, seq_size, w)
-        # in_rnn = tf.reshape(inputs,[-1, seq_size+w, num_features])
+        in_rnn = rnn_in(inputs, batch_num, seq_size, target_delay)
+        # in_rnn = tf.reshape(inputs,[-1, seq_size+target_delay, num_features])
         stacked_rnn = []
-        for iiLyr in range(3):
+        for iiLyr in range(num_layers):
             stacked_rnn.append(tf.nn.rnn_cell.LSTMCell(num_units=lstm_cell_size, state_is_tuple=True))
         MultiLyr_cell = tf.nn.rnn_cell.MultiRNNCell(cells=stacked_rnn, state_is_tuple=True)
 
@@ -150,8 +189,7 @@ def inference(inputs, keep_prob, is_training=True, reuse=None):
         logits = affine_transform(outputs, bdnn_outputsize, name="output1")
         # logits = tf.sigmoid(logits)
         logits = tf.reshape(logits, [-1, int(bdnn_outputsize)])
-        print(logits.get_shape().as_list())
-        print('asdf')
+
     return logits
 
 
@@ -167,27 +205,6 @@ def train(loss_val, var_list):
     grads = optimizer.compute_gradients(loss_val, var_list=var_list)
 
     return optimizer.apply_gradients(grads, global_step=global_step)
-
-
-def bdnn_prediction(bdnn_batch_size, logits, threshold=th):
-
-    result = np.zeros((bdnn_batch_size, 1))
-    indx = np.arange(bdnn_batch_size) + 1
-    indx = indx.reshape((bdnn_batch_size, 1))
-    indx = utils.bdnn_transform(indx, w, u)
-    indx = indx[w:(bdnn_batch_size-w), :]
-    indx_list = np.arange(w, bdnn_batch_size - w)
-
-    for i in indx_list:
-        indx_temp = np.where((indx-1) == i)
-        pred = logits[indx_temp]
-        pred = np.sum(pred)/pred.shape[0]
-        result[i] = pred
-
-    result = np.trim_zeros(result)
-    result = result >= threshold
-
-    return result.astype(int)
 
 
 def summary_generation(eval_file_dir):
@@ -243,7 +260,7 @@ def full_evaluation(m_eval, sess_eval, batch_size_eval, eval_file_dir, summary_w
 
 
         ##########################################
-        eval_data_set = dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=w, u=u, name="eval")
+        eval_data_set = dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, target_delay=target_delay, u=u, name="eval")
 
         eval_cost, eval_accuracy, eval_list, eval_auc, auc_list, eval_time = evaluation(m_eval, eval_data_set, sess_eval,  batch_size_eval, noise_list[i], save_dir = eval_calc_dir)
 
@@ -276,7 +293,6 @@ def full_evaluation(m_eval, sess_eval, batch_size_eval, eval_file_dir, summary_w
     mean_accuracy = np.mean(np.asarray(mean_accuracy))
     mean_auc = np.mean(np.asarray(mean_auc))
     mean_time = np.mean(np.asarray(mean_time))
-
 
     summary_writer.add_summary(sess_eval.run(summary_dic["cost_across_all_noise_types"],
                                              feed_dict={summary_ph: mean_cost}), itr)
@@ -394,19 +410,28 @@ def dense_to_one_hot(labels_dense, num_classes=2):
 
 
 class Model(object):
+
     def __init__(self, is_training=True):
+
         self.keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
-        self.inputs = inputs = tf.placeholder(tf.float32, shape=[batch_size + w, bdnn_inputsize],
+        self.inputs = inputs = tf.placeholder(tf.float32, shape=[batch_size + target_delay, bdnn_inputsize],
                                               name="inputs")
         self.labels = labels = tf.placeholder(tf.float32, shape=[batch_size, bdnn_outputsize], name="labels")
-
+        # self.inputs = inputs = tf.placeholder(tf.float32, shape=[None, bdnn_inputsize],
+        #                                       name="inputs")
+        # self.labels = labels = tf.placeholder(tf.float32, shape=[None, bdnn_outputsize], name="labels")
         # set inference graph
         self.logits = logits = inference(inputs, self.keep_probability, is_training=is_training)  # (batch_size, bdnn_outputsize)
         # set objective function
         # self.cost = cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits))
         pred = tf.argmax(logits, axis=1, name="prediction")
+        softpred = tf.identity(logits[:, 1], name="soft_pred")
+
         pred = tf.cast(pred, tf.int32)
         truth = tf.cast(labels[:, 1], tf.int32)
+
+        self.raw_labels = tf.identity(truth, name="raw_labels")
+
         log_one = logits[:, 1]
 
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(pred, truth), tf.float32))
@@ -425,8 +450,39 @@ class Model(object):
         self.train_op = train(cost, trainable_var)
 
 
-def main(argv=None):
-    mean_acc = 0
+def main(prj_dir=None, model=None, mode=None):
+    #                               Configuration Part                       #
+    if mode is 'train':
+        import path_setting as ps
+
+        set_path = ps.PathSetting(prj_dir, model)
+        logs_dir = initial_logs_dir = set_path.logs_dir
+        input_dir = set_path.input_dir
+        output_dir = set_path.output_dir
+        norm_dir = set_path.norm_dir
+        valid_file_dir = set_path.valid_file_dir
+
+        sys.path.insert(0, prj_dir+'/configure/LSTM')
+        import config as cg
+
+        global seq_size, batch_num
+
+        seq_size = cg.seq_len
+        batch_num = cg.num_batches
+
+        global learning_rate, dropout_rate, max_epoch, batch_size, valid_batch_size
+        learning_rate = cg.lr
+        dropout_rate = cg.dropout_rate
+        max_epoch = cg.max_epoch
+        batch_size = valid_batch_size = batch_num*seq_size
+
+        global target_delay
+        target_delay = cg.target_delay
+
+        global lstm_cell_size, num_layers
+        lstm_cell_size = cg.cell_size
+        num_layers = cg.num_layers
+
     #                               Graph Part                                 #
 
     print("Graph initialization...")
@@ -443,7 +499,7 @@ def main(argv=None):
     print("Setting up summary op...")
     summary_ph = tf.placeholder(dtype=tf.float32)
 
-    with tf.variable_scope("Aggregated_Training_Parts"):
+    with tf.variable_scope("Training_procedure"):
 
         cost_summary_op = tf.summary.scalar("cost", summary_ph)
         accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
@@ -458,7 +514,8 @@ def main(argv=None):
 
     print("Setting up Saver...")
     saver = tf.train.Saver()
-    ckpt = tf.train.get_checkpoint_state(logs_dir)
+    ckpt = tf.train.get_checkpoint_state(logs_dir + '/LSTM')
+
     print("Done")
 
     #                               Session Part                               #
@@ -467,14 +524,29 @@ def main(argv=None):
     sess_config.gpu_options.allow_growth = True
     sess = tf.Session(config=sess_config)
 
+    if mode is 'train':
+        train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', sess.graph, max_queue=2)
+        valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=2)
+
     if ckpt and ckpt.model_checkpoint_path:  # model restore
         print("Model restored...")
-        saver.restore(sess, initial_logs_dir+ckpt_name)
+
+        if mode is 'train':
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            saver.restore(sess, initial_logs_dir+ckpt_name)
+            # saver.restore(sess, logs_dir+ckpt_name)
+
+            saver.save(sess, logs_dir + "/model_LSTM.ckpt", 0)  # model save
+
         print("Done")
     else:
         sess.run(tf.global_variables_initializer())  # if the checkpoint doesn't exist, do initialization
 
-    # train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
+    if mode is 'train':
+        train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, target_delay=target_delay, u=u, name="train")  # training data reader initialization
+
+    # train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, target_delay=target_delay, u=u, name="train")  # training data reader initialization
 
     if mode is 'train':
 
@@ -488,20 +560,10 @@ def main(argv=None):
 
             sess.run(m_train.train_op, feed_dict=feed_dict)
 
-            if itr % 50 == 0 and itr >= 0:
+            if itr % 10 == 0 and itr >= 0:
                 train_cost, train_accuracy = sess.run([m_train.cost, m_train.accuracy], feed_dict=feed_dict)
 
-                # train_cost, logits = sess.run([m_train.cost, m_train.logits], feed_dict=feed_dict)
-                #
-                # result = bdnn_prediction(batch_size, logits, threshold=th)
-                # raw_indx = int(np.floor(train_labels.shape[1] / 2))
-                # raw_labels = train_labels[:, raw_indx]
-                # raw_labels = raw_labels.reshape((-1, 1))
-                # train_accuracy = np.equal(result, raw_labels)
-                # train_accuracy = train_accuracy.astype(int)
-                # train_accuracy = np.sum(train_accuracy) / batch_size  # change to mean...
-
-                print("Step: %d, train_cost: %.3f, train_accuracy=%3.3f" % (itr, train_cost, train_accuracy))
+                print("Step: %d, train_cost: %.4f, train_accuracy=%4.4f" % (itr, train_cost, train_accuracy*100))
 
                 train_cost_summary_str = sess.run(cost_summary_op, feed_dict={summary_ph: train_cost})
                 train_accuracy_summary_str = sess.run(accuracy_summary_op, feed_dict={summary_ph: train_accuracy})
@@ -513,26 +575,34 @@ def main(argv=None):
 
                 saver.save(sess, logs_dir + "/model.ckpt", itr)  # model save
                 print('validation start!')
-                mean_acc = full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir,
-                                           valid_summary_writer, summary_dic, itr)
-            if mean_acc > 0.968:
-                print('finish!!')
-                break
+                valid_accuracy, valid_cost = \
+                    utils.do_validation(m_valid, sess, valid_file_dir, norm_dir, type='LSTM')
+
+                print("valid_cost: %.4f, valid_accuracy=%4.4f" % (valid_cost, valid_accuracy * 100))
+                valid_cost_summary_str = sess.run(cost_summary_op, feed_dict={summary_ph: valid_cost})
+                valid_accuracy_summary_str = sess.run(accuracy_summary_op, feed_dict={summary_ph: valid_accuracy})
+                valid_summary_writer.add_summary(valid_cost_summary_str, itr)  # write the train phase summary to event files
+                valid_summary_writer.add_summary(valid_accuracy_summary_str, itr)
+
+                # mean_acc = full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir,
+                #                            valid_summary_writer, summary_dic, itr)
+            # if mean_acc > 0.968:
+            #     print('finish!!')
+            #     break
                 # train_data_set.reader_initialize()
                 # print('Train data reader was initialized!')  # initialize eof flag & num_file & start index
 
     elif mode is 'test':
 
         final_softout, final_label = utils.vad_test3(m_valid, sess, valid_batch_size, test_file_dir, norm_dir, data_len,
-
                                                      eval_type)
 
-    if data_len is None:
+        if data_len is None:
 
-        return final_softout, final_label
+            return final_softout, final_label
 
-    else:
+        else:
 
-        return final_softout[0:data_len, :], final_label[0:data_len, :]
+            return final_softout[0:data_len, :], final_label[0:data_len, :]
 if __name__ == "__main__":
     tf.app.run()

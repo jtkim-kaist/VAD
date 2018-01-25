@@ -9,10 +9,11 @@ import tarfile
 import zipfile
 import scipy.io
 import re
-import data_reader_bDNN as dr
-import data_reader_DNN as dnn_dr
-from sklearn import metrics
+import data_reader_bDNN_v2 as dr
+import data_reader_DNN_v2 as dnn_dr
+import data_reader_RNN as rnn_dr
 
+from sklearn import metrics
 __author__ = 'Juntae'
 
 
@@ -23,9 +24,9 @@ def vad_test(m_eval, sess_eval, batch_size_eval, eval_file_dir, norm_dir, data_l
 
     pad_size = batch_size_eval - data_len % batch_size_eval
     if eval_type != 2:
-        eval_data_set = dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval", pad=pad_size)
+        eval_data_set = dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval")
     else:
-        eval_data_set = dnn_dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval", pad=pad_size)
+        eval_data_set = dnn_dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval")
 
     final_softout, final_label = evaluation(m_eval, eval_data_set, sess_eval, batch_size_eval, eval_type)
 
@@ -142,8 +143,6 @@ def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
                 # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
                 break
 
-
-
             soft_pred, raw_labels = sess.run([m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
             raw_labels = raw_labels.reshape((-1, 1))
 
@@ -159,7 +158,6 @@ def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
             #     break
 
         return final_softout, final_label
-
 
 
 def onehot_tensor(label_batch, num_labels):
@@ -499,8 +497,8 @@ def bdnn_transform(inputs, w, u):
     return trans_inputs
 
 
-def bdnn_prediction(bdnn_batch_size, logits, threshold=0.6, w=19, u=9):
-
+def bdnn_prediction(batch_size, logits, threshold=0.6, w=19, u=9):
+    bdnn_batch_size = batch_size + 2*w
     result = np.zeros((bdnn_batch_size, 1))
     indx = np.arange(bdnn_batch_size) + 1
     indx = indx.reshape((bdnn_batch_size, 1))
@@ -539,59 +537,231 @@ def dense_to_one_hot(labels_dense, num_classes=2):
     return labels_one_hot.astype(np.float32)
 
 
-def do_validation(m_valid, sess, valid_batch_size, valid_file_dir, norm_dir, model_config, type='DNN'):
+def do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN'):
 
     # dataset reader setting #
 
+    # sys.path.insert(0, prj_dir + '/configure/DNN')
+
     if type is 'DNN':
-        valid_data_set = dnn_dr.DataReader(valid_file_dir, valid_file_dir+'/Labels', norm_dir, w=model_config['w'],
-                                           u=model_config['u'], name="eval")
 
-    avg_valid_accuracy = 0.
-    avg_valid_cost = 0.
-    itr_sum = 0.
+        sys.path.insert(0, os.path.abspath('../../configure/DNN'))
+        import config as cg
+        valid_batch_size = cg.batch_size
 
-    accuracy_list = [0 for i in range(valid_data_set._file_len)]
-    cost_list = [0 for i in range(valid_data_set._file_len)]
-    itr_file = 0
-    while True:
+        valid_data_set = dnn_dr.DataReader(valid_file_dir, valid_file_dir+'/Labels', norm_dir, w=cg.w,
+                                           u=cg.u, name="eval")
 
-        valid_inputs, valid_labels = valid_data_set.next_batch(valid_batch_size)
+        avg_valid_accuracy = 0.
+        avg_valid_cost = 0.
+        itr_sum = 0.
 
-        if valid_data_set.file_change_checker():
-            # print(itr_file)
-            accuracy_list[itr_file] = avg_valid_accuracy / itr_sum
-            cost_list[itr_file] = avg_valid_cost / itr_sum
-            avg_valid_cost = 0.
-            avg_valid_accuracy = 0.
-            itr_sum = 0
-            itr_file += 1
-            valid_data_set.file_change_initialize()
+        accuracy_list = [0 for i in range(valid_data_set._file_len)]
+        cost_list = [0 for i in range(valid_data_set._file_len)]
+        itr_file = 0
+        while True:
 
-        if valid_data_set.eof_checker():
-            valid_data_set.reader_initialize()
-            print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
-            break
+            valid_inputs, valid_labels = valid_data_set.next_batch(valid_batch_size)
 
-        one_hot_labels = valid_labels.reshape((-1, 1))
-        one_hot_labels = dense_to_one_hot(one_hot_labels, num_classes=2)
+            if valid_data_set.file_change_checker():
+                # print(itr_file)
+                accuracy_list[itr_file] = avg_valid_accuracy / itr_sum
+                cost_list[itr_file] = avg_valid_cost / itr_sum
+                avg_valid_cost = 0.
+                avg_valid_accuracy = 0.
+                itr_sum = 0
+                itr_file += 1
+                valid_data_set.file_change_initialize()
 
-        feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: one_hot_labels,
-                     m_valid.keep_probability: 1}
+            if valid_data_set.eof_checker():
+                valid_data_set.reader_initialize()
+                print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                break
 
-        # valid_cost, valid_softpred, valid_raw_labels\
-        #     = sess.run([m_valid.cost, m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
-        #
-        # fpr, tpr, thresholds = metrics.roc_curve(valid_raw_labels, valid_softpred, pos_label=1)
-        # valid_auc = metrics.auc(fpr, tpr)
+            one_hot_labels = valid_labels.reshape((-1, 1))
+            one_hot_labels = dense_to_one_hot(one_hot_labels, num_classes=2)
 
-        valid_cost, valid_accuracy = sess.run([m_valid.cost, m_valid.accuracy], feed_dict=feed_dict)
+            feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: one_hot_labels,
+                         m_valid.keep_probability: 1}
 
-        avg_valid_accuracy += valid_accuracy
-        avg_valid_cost += valid_cost
-        itr_sum += 1
+            # valid_cost, valid_softpred, valid_raw_labels\
+            #     = sess.run([m_valid.cost, m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
+            #
+            # fpr, tpr, thresholds = metrics.roc_curve(valid_raw_labels, valid_softpred, pos_label=1)
+            # valid_auc = metrics.auc(fpr, tpr)
 
-    total_avg_valid_accuracy = np.asscalar(np.mean(np.asarray(accuracy_list)))
-    total_avg_valid_cost = np.asscalar(np.mean(np.asarray(cost_list)))
+            valid_cost, valid_accuracy = sess.run([m_valid.cost, m_valid.accuracy], feed_dict=feed_dict)
+
+            avg_valid_accuracy += valid_accuracy
+            avg_valid_cost += valid_cost
+            itr_sum += 1
+
+        total_avg_valid_accuracy = np.asscalar(np.mean(np.asarray(accuracy_list)))
+        total_avg_valid_cost = np.asscalar(np.mean(np.asarray(cost_list)))
+
+    elif type is 'bDNN':
+
+        sys.path.insert(0, os.path.abspath('../../configure/bDNN'))
+        import config as cg
+        valid_batch_size = cg.batch_size
+
+        valid_data_set = dr.DataReader(valid_file_dir, valid_file_dir + '/Labels', norm_dir, w=cg.w,
+                                           u=cg.u, name="eval")
+        avg_valid_accuracy = 0.
+        avg_valid_cost = 0.
+        itr_sum = 0.
+
+        accuracy_list = [0 for i in range(valid_data_set._file_len)]
+        cost_list = [0 for i in range(valid_data_set._file_len)]
+        itr_file = 0
+
+        while True:
+
+            valid_inputs, valid_labels = valid_data_set.next_batch(valid_batch_size)
+
+            if valid_data_set.file_change_checker():
+                # print(itr_file)
+                accuracy_list[itr_file] = avg_valid_accuracy / itr_sum
+                cost_list[itr_file] = avg_valid_cost / itr_sum
+                avg_valid_cost = 0.
+                avg_valid_accuracy = 0.
+                itr_sum = 0
+                itr_file += 1
+                valid_data_set.file_change_initialize()
+
+            if valid_data_set.eof_checker():
+                valid_data_set.reader_initialize()
+                print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                break
+
+            feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: valid_labels,
+                         m_valid.keep_probability: 1}
+
+            valid_cost, valid_logits = sess.run([m_valid.cost, m_valid.logits], feed_dict=feed_dict)
+            valid_pred, soft_pred = bdnn_prediction(valid_batch_size, valid_logits, threshold=0.6)
+            # print(np.sum(valid_pred))
+
+            raw_indx = int(np.floor(valid_labels.shape[1] / 2))
+            raw_labels = valid_labels[:, raw_indx]
+            raw_labels = raw_labels.reshape((-1, 1))
+
+            valid_accuracy = np.equal(valid_pred, raw_labels)
+            valid_accuracy = valid_accuracy.astype(int)
+            valid_accuracy = np.sum(valid_accuracy) / valid_batch_size
+            avg_valid_cost += valid_cost
+            avg_valid_accuracy += valid_accuracy
+            itr_sum += 1
+
+        total_avg_valid_accuracy = np.asscalar(np.mean(np.asarray(accuracy_list)))
+        total_avg_valid_cost = np.asscalar(np.mean(np.asarray(cost_list)))
+
+    elif type is 'ACAM':
+
+        sys.path.insert(0, os.path.abspath('../../configure/ACAM'))
+        import config as cg
+        valid_batch_size = cg.batch_size
+
+        valid_data_set = dr.DataReader(valid_file_dir, valid_file_dir+'/Labels', norm_dir, w=cg.w,
+                                           u=cg.u, name="eval")
+        avg_valid_accuracy = 0.
+        avg_valid_cost = 0.
+        itr_sum = 0.
+
+        accuracy_list = [0 for i in range(valid_data_set._file_len)]
+        cost_list = [0 for i in range(valid_data_set._file_len)]
+        itr_file = 0
+        while True:
+
+            valid_inputs, valid_labels = valid_data_set.next_batch(valid_batch_size)
+
+            if valid_data_set.file_change_checker():
+                # print(itr_file)
+                accuracy_list[itr_file] = avg_valid_accuracy / itr_sum
+                cost_list[itr_file] = avg_valid_cost / itr_sum
+                avg_valid_cost = 0.
+                avg_valid_accuracy = 0.
+                itr_sum = 0
+                itr_file += 1
+                valid_data_set.file_change_initialize()
+
+            if valid_data_set.eof_checker():
+                valid_data_set.reader_initialize()
+                print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                break
+
+            feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: valid_labels,
+                         m_valid.keep_probability: 1}
+
+            # valid_cost, valid_softpred, valid_raw_labels\
+            #     = sess.run([m_valid.cost, m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
+            #
+            # fpr, tpr, thresholds = metrics.roc_curve(valid_raw_labels, valid_softpred, pos_label=1)
+            # valid_auc = metrics.auc(fpr, tpr)
+
+            valid_cost, valid_accuracy = sess.run([m_valid.cost, m_valid.reward], feed_dict=feed_dict)
+
+            avg_valid_accuracy += valid_accuracy
+            avg_valid_cost += valid_cost
+            itr_sum += 1
+
+        total_avg_valid_accuracy = np.asscalar(np.mean(np.asarray(accuracy_list)))
+        total_avg_valid_cost = np.asscalar(np.mean(np.asarray(cost_list)))
+
+    elif type is 'LSTM':
+
+        sys.path.insert(0, os.path.abspath('../../configure/LSTM'))
+        import config as cg
+
+        valid_batch_size = cg.seq_len * cg.num_batches
+
+        valid_data_set = rnn_dr.DataReader(valid_file_dir, valid_file_dir+'/Labels', norm_dir, target_delay=cg.target_delay,
+                                           name="eval")
+
+        avg_valid_accuracy = 0.
+        avg_valid_cost = 0.
+        itr_sum = 0.
+
+        accuracy_list = [0 for i in range(valid_data_set._file_len)]
+        cost_list = [0 for i in range(valid_data_set._file_len)]
+        itr_file = 0
+        while True:
+
+            valid_inputs, valid_labels = valid_data_set.next_batch(valid_batch_size)
+
+            if valid_data_set.file_change_checker():
+                # print(itr_file)
+                accuracy_list[itr_file] = avg_valid_accuracy / itr_sum
+                cost_list[itr_file] = avg_valid_cost / itr_sum
+                avg_valid_cost = 0.
+                avg_valid_accuracy = 0.
+                itr_sum = 0
+                itr_file += 1
+                valid_data_set.file_change_initialize()
+
+            if valid_data_set.eof_checker():
+                valid_data_set.reader_initialize()
+                print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                break
+
+            one_hot_labels = valid_labels.reshape((-1, 1))
+            one_hot_labels = dense_to_one_hot(one_hot_labels, num_classes=2)
+
+            feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: one_hot_labels,
+                         m_valid.keep_probability: 1}
+
+            # valid_cost, valid_softpred, valid_raw_labels\
+            #     = sess.run([m_valid.cost, m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
+            #
+            # fpr, tpr, thresholds = metrics.roc_curve(valid_raw_labels, valid_softpred, pos_label=1)
+            # valid_auc = metrics.auc(fpr, tpr)
+
+            valid_cost, valid_accuracy = sess.run([m_valid.cost, m_valid.accuracy], feed_dict=feed_dict)
+
+            avg_valid_accuracy += valid_accuracy
+            avg_valid_cost += valid_cost
+            itr_sum += 1
+
+        total_avg_valid_accuracy = np.asscalar(np.mean(np.asarray(accuracy_list)))
+        total_avg_valid_cost = np.asscalar(np.mean(np.asarray(cost_list)))
 
     return total_avg_valid_accuracy, total_avg_valid_cost

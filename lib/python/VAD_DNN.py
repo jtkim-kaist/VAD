@@ -2,8 +2,8 @@ import tensorflow as tf
 import numpy as np
 import utils as utils
 import re
-import data_reader_DNN as dr
-import os
+import data_reader_DNN_v2 as dr
+import os, sys
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from sklearn import metrics
@@ -68,33 +68,6 @@ bdnn_inputsize = int(bdnn_winlen * num_features)
 bdnn_outputsize = 2
 data_len = None
 eval_type = 2
-
-
-def train_config(c_train_dir, c_valid_dir, c_logs_dir, c_batch_size_eval, c_max_epoch, c_mode):
-
-    global file_dir
-    global input_dir
-    global output_dir
-    global valid_file_dir
-    global norm_dir
-    global initial_logs_dir
-    global logs_dir
-    global ckpt_name
-    global batch_size
-    global valid_batch_size
-    global mode
-    global max_epoch
-
-    file_dir = c_train_dir
-    valid_file_dir = c_valid_dir
-    input_dir = file_dir
-    output_dir = file_dir + "/Labels"
-
-    norm_dir = file_dir
-    initial_logs_dir = logs_dir = c_logs_dir
-    batch_size = valid_batch_size = c_batch_size_eval + 2 * w
-    max_epoch = c_max_epoch
-    mode = c_mode
 
 
 def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_batch_size_eval, c_data_len):
@@ -347,11 +320,12 @@ class Model(object):
         self.logits = logits = inference(inputs, self.keep_probability, is_training=is_training)  # (batch_size, bdnn_outputsize)
         # set objective function
         pred = tf.argmax(logits, axis=1, name="prediction")
-        softpred = logits[:, 1]
+        softpred = tf.identity(logits[:, 1], name="soft_pred")
         pred = tf.cast(pred, tf.int32)
         truth = tf.cast(labels[:, 1], tf.int32)
 
-        self.raw_labels = truth
+        self.raw_labels = tf.identity(truth, name="raw_labels")
+
         self.softpred = softpred
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(pred, truth), tf.float32))
         self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=logits))
@@ -365,7 +339,41 @@ class Model(object):
         self.train_op = train(self.cost, trainable_var)
 
 
-def main(argv=None):
+def main(prj_dir=None, model=None, mode=None):
+
+    #                               Configuration Part                       #
+    if mode is 'train':
+        import path_setting as ps
+
+        set_path = ps.PathSetting(prj_dir, model)
+        logs_dir = initial_logs_dir = set_path.logs_dir
+        input_dir = set_path.input_dir
+        output_dir = set_path.output_dir
+        norm_dir = set_path.norm_dir
+        valid_file_dir = set_path.valid_file_dir
+
+        sys.path.insert(0, prj_dir+'/configure/DNN')
+        import config as cg
+
+        global learning_rate, dropout_rate, max_epoch, batch_size, valid_batch_size
+        learning_rate = cg.lr
+        dropout_rate = cg.dropout_rate
+        max_epoch = cg.max_epoch
+        batch_size = valid_batch_size = cg.batch_size
+
+        global w, u
+        w = cg.w
+        u = cg.u
+
+        global bdnn_winlen, bdnn_inputsize, bdnn_outputsize
+        bdnn_winlen = (((w-1) / u) * 2) + 3
+        bdnn_inputsize = int(bdnn_winlen * num_features)
+        bdnn_outputsize = 2
+
+        global num_hidden_1, num_hidden_2
+        num_hidden_1 = cg.num_hidden_1
+        num_hidden_2 = cg.num_hidden_2
+
     #                               Graph Part                               #
     print("Graph initialization...")
     with tf.device(device):
@@ -386,10 +394,6 @@ def main(argv=None):
         cost_summary_op = tf.summary.scalar("cost", summary_ph)
         accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
 
-    if mode is 'train':
-        train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', max_queue=2)
-        valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=2)
-
     # summary_dic = summary_generation(valid_file_dir)
 
     print("Done")
@@ -398,7 +402,7 @@ def main(argv=None):
 
     print("Setting up Saver...")
     saver = tf.train.Saver()
-    ckpt = tf.train.get_checkpoint_state(logs_dir)
+    ckpt = tf.train.get_checkpoint_state(logs_dir + '/DNN')
     print("Done")
 
     #                               Session Part                              #
@@ -407,6 +411,10 @@ def main(argv=None):
     sess_config.gpu_options.allow_growth = True
     sess = tf.Session(config=sess_config)
 
+    if mode is 'train':
+        train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', sess.graph, max_queue=2)
+        valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=2)
+
     if ckpt and ckpt.model_checkpoint_path:  # model restore
         print("Model restored...")
 
@@ -414,6 +422,7 @@ def main(argv=None):
             saver.restore(sess, ckpt.model_checkpoint_path)
         else:
             saver.restore(sess, initial_logs_dir+ckpt_name)
+            # saver.save(sess, logs_dir + "/model_DNN.ckpt", 0)  # model save
 
         print("Done")
     else:
@@ -459,8 +468,7 @@ def main(argv=None):
                 saver.save(sess, logs_dir + "/model.ckpt", itr)  # model save
                 print('validation start!')
                 valid_accuracy, valid_cost = \
-                    utils.do_validation(m_valid, sess, valid_batch_size, valid_file_dir, norm_dir,
-                                        model_config, type='DNN')
+                    utils.do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN')
 
                 print("valid_cost: %.4f, valid_accuracy=%4.4f" % (valid_cost, valid_accuracy * 100))
                 valid_cost_summary_str = sess.run(cost_summary_op, feed_dict={summary_ph: valid_cost})

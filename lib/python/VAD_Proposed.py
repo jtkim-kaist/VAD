@@ -2,8 +2,8 @@ import tensorflow as tf
 import numpy as np
 import utils as utils
 import re
-import data_reader_bDNN as dr
-import os
+import data_reader_bDNN_v2 as dr
+import os, sys
 import time
 import subprocess
 # import matplotlib.pyplot as plt
@@ -71,6 +71,7 @@ num_features = 768  # for MRCG feature
 bdnn_winlen = (((w-1) / u) * 2) + 3
 bdnn_inputsize = int(bdnn_winlen * num_features)
 bdnn_outputsize = int(bdnn_winlen)
+model_config = {"w": w, "u": u}
 
 '''training parameter'''
 
@@ -81,9 +82,8 @@ max_epoch = int(5000)
 dropout_rate = 0.5
 decay = 0.9  # batch normalization decay factor
 eval_th = th = 0.5  # 0.5
-effective_batch_size = int(4096)  # default = 4096 * 2
-train_batch_size = effective_batch_size + 2*w
-valid_batch_size = train_batch_size
+batch_size = int(4096)  # default = 4096 * 2
+valid_batch_size = batch_size
 clip_th = 11  # default : 0.90491669
 # initLr = 0.000605  # default : 0.000970598, 0.000605
 initLr = 0.000605  # default : 0.000970598, 0.000605
@@ -108,6 +108,35 @@ action_hidden_2 = 256  # default : 256
 attention = []
 
 
+def train_config(c_train_dir, c_valid_dir, c_logs_dir, c_batch_size_eval, c_max_epoch, c_mode):
+
+    global file_dir
+    global input_dir
+    global output_dir
+    global valid_file_dir
+    global norm_dir
+    global initial_logs_dir
+    global logs_dir
+    global ckpt_name
+    global batch_size
+    global valid_batch_size
+    global mode
+    global max_epoch
+
+    file_dir = c_train_dir
+    valid_file_dir = c_valid_dir
+    input_dir = file_dir
+    output_dir = file_dir + "/Labels"
+
+    norm_dir = file_dir
+    initial_logs_dir = logs_dir = c_logs_dir
+    # batch_size = valid_batch_size = c_batch_size_eval + 2 * w
+    batch_size = valid_batch_size = c_batch_size_eval
+
+    max_epoch = c_max_epoch
+    mode = c_mode
+
+
 def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_batch_size_eval, c_data_len):
     global test_file_dir
     global norm_dir
@@ -115,11 +144,14 @@ def test_config(c_test_dir, c_norm_dir, c_initial_logs_dir, c_batch_size_eval, c
     global ckpt_name
     global valid_batch_size
     global data_len
+    global batch_size
     test_file_dir = c_test_dir
     norm_dir = c_norm_dir
-    initial_logs_dir = c_initial_logs_dir
-    valid_batch_size = c_batch_size_eval
+    initial_logs_dir = c_initial_logs_dir + '/backup_ckpt'
+    print(initial_logs_dir)
+    batch_size = valid_batch_size = c_batch_size_eval
     data_len = c_data_len
+
 
 def config(c_initLr=initLr, c_clip_threshold=clip_th, c_device=device, c_max_epoch=max_epoch):
 
@@ -161,11 +193,17 @@ def affine_transform(x, output_dim, seed=0, name=None):
 
 
 def sw_sensor(inputs, bp):
+    global batch_size
     # bp = tf.ones(bp.get_shape().as_list(), dtype=tf.float32) / 7  # for fix the attention
     bp = tf.expand_dims(bp, axis=2)
     bp = tf.tile(bp, (1, 1, num_features))
-    bp = tf.reshape(bp, (inputs.get_shape()[0].value, -1, 1))
+    # bp = tf.reshape(bp, (inputs.get_shape()[0].value, -1, 1))
+    bp = tf.reshape(bp, (batch_size, -1, 1))
+
     bp = tf.squeeze(bp)
+
+    print(bp.get_shape().as_list()[0])
+    print(inputs.get_shape().as_list()[0])
 
     sw = bp * inputs
 
@@ -206,8 +244,8 @@ def multinomial_pmf(mean, sample):
     return p_br
 
 
-def bdnn_prediction(bdnn_batch_size, logits, threshold=th):
-
+def bdnn_prediction(batch_size_in, logits, threshold=th):
+    bdnn_batch_size = batch_size_in + 2*w
     result = np.zeros((int(bdnn_batch_size), 1))
     indx = np.arange(int(bdnn_batch_size)) + 1
     indx = indx.reshape((int(bdnn_batch_size), 1))
@@ -401,9 +439,9 @@ class Model(object):
         self.cell_outputs = []
         self.batch_size = batch_size
         self.keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
-        self.inputs = tf.placeholder(tf.float32, shape=[batch_size, bdnn_inputsize],
+        self.inputs = tf.placeholder(tf.float32, shape=[None, bdnn_inputsize],
                                               name="inputs")
-        self.labels = tf.placeholder(tf.float32, shape=[batch_size, bdnn_outputsize], name="labels")
+        self.labels = tf.placeholder(tf.float32, shape=[None, bdnn_outputsize], name="labels")
         self.is_training = is_training
         self.mean_bps = []
         self.sampled_bps = []
@@ -475,12 +513,26 @@ class Model(object):
 
         return outputs
 
+    def sw_sensor(self, inputs, bp):
+
+        # bp = tf.ones(bp.get_shape().as_list(), dtype=tf.float32) / 7  # for fix the attention
+        bp = tf.expand_dims(bp, axis=2)
+        bp = tf.tile(bp, (1, 1, num_features))
+        # bp = tf.reshape(bp, (inputs.get_shape()[0].value, -1, 1))
+        bp = tf.reshape(bp, (self.batch_size, -1, 1))
+
+        bp = tf.squeeze(bp)
+
+        sw = bp * inputs
+
+        return sw
+
     def get_glimpse(self, inputs, bp, reuse=None):
 
         is_training = self.is_training
 
         with tf.variable_scope("glimpse_net", reuse=reuse):
-            glimpse_input = sw_sensor(inputs, bp)
+            glimpse_input = self.sw_sensor(inputs, bp)
 
             act_glimpse_hidden = tf.nn.relu(
                 utils.batch_norm_affine_transform(glimpse_input, glimpse_hidden, decay=decay,
@@ -548,7 +600,7 @@ class Model(object):
 
     def bdnn_prediction(self, logits, threshold):
 
-        batch_size_tensor = tf.constant(self.batch_size+2*w, dtype=tf.float32)
+        batch_size_tensor = tf.constant(self.batch_size, dtype=tf.float32)
         th_tenor = tf.constant(threshold, dtype=tf.float32)
 
         result, soft_result = tf.py_func(bdnn_prediction, [batch_size_tensor, logits, th_tenor], Tout=[tf.float32, tf.float32])
@@ -579,7 +631,9 @@ class Model(object):
 
         action_out = self.action_network(outputs)
         logits = tf.sigmoid(affine_transform(action_out, int(bdnn_outputsize), seed=SEED, name="softmax"))
+        logits = tf.identity(logits, "logits")
         result, soft_result = self.bdnn_prediction(logits, threshold=th)
+        # soft_result = tf.identity(soft_result, 'soft_pred')
 
         # convert list of tensors to one big tensor
 
@@ -596,6 +650,8 @@ class Model(object):
         raw_indx = int(np.floor(bdnn_outputsize / 2))
         raw_labels = self.labels[:, raw_indx]
         raw_labels = tf.reshape(raw_labels, shape=(-1, 1))
+        raw_labels = tf.identity(raw_labels, 'raw_labels')
+
         R = tf.cast(tf.equal(result, raw_labels), tf.float32)
         soft_R = tf.stop_gradient(tf.cast(tf.abs(tf.subtract(1 - soft_result, raw_labels)), tf.float32))
         soft_R = tf.reshape(soft_R, (batch_size, 1))
@@ -637,7 +693,48 @@ class Model(object):
                sampled_bps, tf.reduce_mean(p_bps), self.lr, soft_result, raw_labels
 
 
-def main(argv=None):
+def main(prj_dir=None, model=None, mode=None):
+
+    #                               Configuration Part                       #
+    if mode is 'train':
+
+        import path_setting as ps
+
+        set_path = ps.PathSetting(prj_dir, model)
+        logs_dir = initial_logs_dir = set_path.logs_dir
+        input_dir = set_path.input_dir
+        output_dir = set_path.output_dir
+        norm_dir = set_path.norm_dir
+        valid_file_dir = set_path.valid_file_dir
+
+        sys.path.insert(0, prj_dir+'/configure/ACAM')
+        import config as cg
+
+        global initLr, dropout_rate, max_epoch, batch_size, valid_batch_size
+        initLr = cg.lr
+        dropout_rate = cg.dropout_rate
+        max_epoch = cg.max_epoch
+        batch_size = valid_batch_size = cg.batch_size
+
+        global w, u
+        w = cg.w
+        u = cg.u
+
+        global bdnn_winlen, bdnn_inputsize, bdnn_outputsize
+        bdnn_winlen = (((w-1) / u) * 2) + 3
+        bdnn_inputsize = int(bdnn_winlen * num_features)
+        bdnn_outputsize = int(bdnn_winlen)
+
+        global glimpse_hidden, bp_hidden, glimpse_out, bp_out, nGlimpses,\
+            lstm_cell_size, action_hidden_1, action_hidden_2
+
+        glimpse_hidden = cg.glimpse_hidden
+        bp_hidden = cg.bp_hidden
+        glimpse_out = bp_out = cg.glimpse_out
+        nGlimpses = cg.nGlimpse  # 7
+        lstm_cell_size = cg.lstm_cell_size
+        action_hidden_1 = cg.action_hidden_1  # default : 256
+        action_hidden_2 = cg.action_hidden_2  # default : 256
 
     #                               Graph Part                                 #
 
@@ -648,7 +745,8 @@ def main(argv=None):
     print("Graph initialization...")
     with tf.device(device):
         with tf.variable_scope("model", reuse=None):
-            m_train = Model(batch_size=effective_batch_size, reuse=None, is_training=True)
+            m_train = Model(batch_size=batch_size, reuse=None, is_training=True)
+            # m_train(batch_size)
     with tf.device(device):
         with tf.variable_scope("model", reuse=True):
             m_valid = Model(batch_size=valid_batch_size, reuse=True, is_training=False)
@@ -660,7 +758,7 @@ def main(argv=None):
     print("Setting up summary op...")
     summary_ph = tf.placeholder(dtype=tf.float32)
 
-    with tf.variable_scope("Aggregated_Training_Parts"):
+    with tf.variable_scope("Training_procedure"):
 
         cost_summary_op = tf.summary.scalar("cost", summary_ph)
         accuracy_summary_op = tf.summary.scalar("accuracy", summary_ph)
@@ -684,23 +782,34 @@ def main(argv=None):
     sess_config.gpu_options.allow_growth = True
     sess = tf.Session(config=sess_config)
 
+    if mode is 'train':
+        train_summary_writer = tf.summary.FileWriter(logs_dir + '/train/', sess.graph, max_queue=2)
+        valid_summary_writer = tf.summary.FileWriter(logs_dir + '/valid/', max_queue=2)
+
     if ckpt and ckpt.model_checkpoint_path:  # model restore
         print("Model restored...")
         print(initial_logs_dir+ckpt_name)
-        saver.restore(sess, initial_logs_dir+ckpt_name)
+        if mode is 'train':
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            saver.restore(sess, initial_logs_dir+ckpt_name)
+            saver.save(sess, initial_logs_dir + "/model_ACAM.ckpt", 0)  # model save
+
         print("Done")
+
     else:
         sess.run(tf.global_variables_initializer())  # if the checkpoint doesn't exist, do initialization
 
-    # train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u, name="train")  # training data reader initialization
-
-    if str(mode) == "train":
+    if mode is 'train':
+        train_data_set = dr.DataReader(input_dir, output_dir, norm_dir, w=w, u=u,
+                                       name="train")  # training data reader initialization
+    if mode is 'train':
 
         for itr in range(max_epoch):
 
             start_time = time.time()
 
-            train_inputs, train_labels = train_data_set.next_batch(train_batch_size)
+            train_inputs, train_labels = train_data_set.next_batch(batch_size)
 
             feed_dict = {m_train.inputs: train_inputs, m_train.labels: train_labels,
                          m_train.keep_probability: dropout_rate}
@@ -725,19 +834,29 @@ def main(argv=None):
 
             # if train_data_set.eof_checker():
 
-            if itr % val_freq == 0 and itr >= val_start_step:
-
+            # if itr % val_freq == 0 and itr >= val_start_step:
+            if itr % 50 == 0 and itr > 0:
+                saver.save(sess, logs_dir + "/model.ckpt", itr)  # model save
                 print('validation start!')
+                valid_accuracy, valid_cost = \
+                    utils.do_validation(m_valid, sess, valid_file_dir, norm_dir,
+                                        type='ACAM')
 
-                mean_accuracy, var_accuracy = full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir, valid_summary_writer, summary_dic, itr)
-                if mean_accuracy >= 0.991:
+                print("valid_cost: %.4f, valid_accuracy=%4.4f" % (valid_cost, valid_accuracy * 100))
+                valid_cost_summary_str = sess.run(cost_summary_op, feed_dict={summary_ph: valid_cost})
+                valid_accuracy_summary_str = sess.run(accuracy_summary_op, feed_dict={summary_ph: valid_accuracy})
+                valid_summary_writer.add_summary(valid_cost_summary_str, itr)  # write the train phase summary to event files
+                valid_summary_writer.add_summary(valid_accuracy_summary_str, itr)
 
-                    print('model was saved!')
-                    model_name = '/model' + str(int(mean_accuracy * 1e4)) + 'and'\
-                                 + str(int(var_accuracy * 1e5)) + '.ckpt'
-                    saver.save(sess, save_dir + model_name, itr)
-                mean_acc_list.append(mean_accuracy)
-                var_acc_list.append(var_accuracy)
+                # mean_accuracy, var_accuracy = full_evaluation(m_valid, sess, valid_batch_size, valid_file_dir, valid_summary_writer, summary_dic, itr)
+                # if mean_accuracy >= 0.991:
+                #
+                #     print('model was saved!')
+                #     model_name = '/model' + str(int(mean_accuracy * 1e4)) + 'and'\
+                #                  + str(int(var_accuracy * 1e5)) + '.ckpt'
+                #     saver.save(sess, save_dir + model_name, itr)
+                # mean_acc_list.append(mean_accuracy)
+                # var_acc_list.append(var_accuracy)
 
                 # train_data_set.initialize()
 
@@ -747,16 +866,15 @@ def main(argv=None):
                                                     eval_type)
 
 
-        if data_len is None:
-            return final_softout, final_label
-        else:
-            final_softout = final_softout[0:data_len, :]
-            final_label = final_label[0:data_len, :]
+        # if data_len is None:
+        #     return final_softout, final_label
+        # else:
+        #     final_softout = final_softout[0:data_len, :]
+        #     final_label = final_label[0:data_len, :]
 
         # fpr, tpr, thresholds = metrics.roc_curve(final_label, final_softout, pos_label=1)
         # eval_auc = metrics.auc(fpr, tpr)
         # print(eval_auc)
-
 
         # full_evaluation(m_valid, sess, valid_batch_size, test_file_dir, valid_summary_writer, summary_dic, 0)
         # if visualization:
@@ -764,10 +882,10 @@ def main(argv=None):
         #     attention = np.asarray(attention)
         #     sio.savemat('attention.mat', {'attention' : attention})
         #     subprocess.call(['./visualize.sh'])
-    if data_len is None:
-        return final_softout, final_label
-    else:
-        return final_softout[0:data_len, :], final_label[0:data_len, :]
+        if data_len is None:
+            return final_softout, final_label
+        else:
+            return final_softout[0:data_len, :], final_label[0:data_len, :]
 
 if __name__ == "__main__":
     tf.app.run()

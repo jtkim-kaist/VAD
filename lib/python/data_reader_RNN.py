@@ -9,7 +9,7 @@ import matplotlib.image as mpimg
 
 class DataReader(object):
 
-    def __init__(self, input_dir, output_dir, norm_dir, w=19, u=9, name=None, pad=None):
+    def __init__(self, input_dir, output_dir, norm_dir, target_delay=19, u=9, name=None):
         # print(name.title() + " data reader initialization...")
         self._input_dir = input_dir
         self._output_dir = output_dir
@@ -20,40 +20,26 @@ class DataReader(object):
         self._file_len = len(self._input_file_list)
         self._name = name
         assert self._file_len == len(self._output_file_list), "# input files and output file is not matched"
+        self._w = target_delay
+        self._u = u
 
+        self.eof = False
+        self.file_change = False
+        self.num_samples = 0
+
+        self._inputs = 0
+        self._outputs = 0
+
+        self._epoch = 1
         self._num_file = 0
         self._start_idx = 0  #
-
-        if pad is not None:
-            self._inputs = self._read_input(self._input_file_list[self._num_file], self._input_spec_list[self._num_file])
-            self._inputs = np.concatenate((self._inputs, np.zeros((pad, self._inputs.shape[1]), dtype=np.float32)))
-            self._outputs = self._read_output(self._output_file_list[self._num_file])
-            self._outputs = np.concatenate((self._outputs, np.zeros((pad, self._outputs.shape[1]), dtype=np.float32)))
-        else:
-            self._inputs = self._read_input(self._input_file_list[self._num_file], self._input_spec_list[self._num_file])
-            self._outputs = self._read_output(self._output_file_list[self._num_file])
-
-        # self._inputs = self._read_input(self._input_file_list[self._num_file], self._input_spec_list[self._num_file])
-        # self._outputs = self._read_output(self._output_file_list[self._num_file])
-        self._w = w
-        self._u = u
-        self.eof = False
-        self._num_figure = 1
-        self.file_change = False
-        # assert np.shape(self._inputs)[0] == np.shape(self._outputs)[0], \
-        #     ("# samples is not matched between input: %d and output: %d files"
-        #      % (np.shape(self._inputs)[0], np.shape(self._outputs)[0]))
-        if np.shape(self._inputs)[0] > np.shape(self._outputs)[0]:
-            self.num_samples = np.shape(self._outputs)[0]
-        else:
-            self.num_samples = np.shape(self._inputs)[0]
 
         norm_param = sio.loadmat(self._norm_dir+'/global_normalize_factor.mat')
         self.train_mean = norm_param['global_mean']
         self.train_std = norm_param['global_std']
 
-        print("Done")
-        print("BOF : " + self._name + " file_" + str(self._num_file).zfill(2))
+        # print("Done")
+        # print("BOF : " + self._name + " file_" + str(self._num_file).zfill(2))
 
     def _binary_read_with_shape(self):
         pass
@@ -77,25 +63,49 @@ class DataReader(object):
 
         return data
 
+    @staticmethod
+    def _padding(inputs, batch_size, w_val):
+        pad_size = batch_size - inputs.shape[0] % batch_size
+
+        inputs = np.concatenate((inputs, np.zeros((pad_size, inputs.shape[1]), dtype=np.float32)))
+
+        window_pad = np.zeros((w_val, inputs.shape[1]))
+        inputs = np.concatenate((inputs, window_pad), axis=0)
+        return inputs
+
     def next_batch(self, batch_size):
 
-        if self._start_idx + batch_size + self._w > self.num_samples:
+        if self._start_idx == 0:
+            self._inputs = self._padding(
+                self._read_input(self._input_file_list[self._num_file],
+                                 self._input_spec_list[self._num_file]), batch_size, self._w)
+            self._outputs = self._padding(self._read_output(self._output_file_list[self._num_file]), batch_size, self._w)
+            assert np.shape(self._inputs)[0] == np.shape(self._outputs)[0], \
+                ("# samples is not matched between input: %d and output: %d files"
+                 % (np.shape(self._inputs)[0], np.shape(self._outputs)[0]))
 
-            self._start_idx = 0  #
+            self.num_samples = np.shape(self._outputs)[0]
+
+        if self._start_idx + batch_size > self.num_samples:
+
+            self._start_idx = 0
             self.file_change = True
             self._num_file += 1
 
-            print("EOF : " + self._name + " file_" + str(self._num_file - 1).zfill(2) +
-                  " -> BOF : " + self._name + " file_" + str(self._num_file).zfill(2))
+            # print("EOF : " + self._name + " file_" + str(self._num_file-1).zfill(2) +
+            #       " -> BOF : " + self._name + " file_" + str(self._num_file).zfill(2))
 
             if self._num_file > self._file_len - 1:
                 self.eof = True
                 self._num_file = 0
-                print("EOF : last " + self._name + " file. " + "-> BOF : " + self._name + " file_" +
-                      str(self._num_file).zfill(2))
+                # print("EOF : last " + self._name + " file. " + "-> BOF : " + self._name + " file_" +
+                #       str(self._num_file).zfill(2))
 
-            self._inputs = self._read_input(self._input_file_list[self._num_file], self._input_spec_list[self._num_file])
-            self._outputs = self._read_output(self._output_file_list[self._num_file])
+            self._inputs = self._padding(
+                self._read_input(self._input_file_list[self._num_file],
+                                 self._input_spec_list[self._num_file]), batch_size, self._w)
+
+            self._outputs = self._padding(self._read_output(self._output_file_list[self._num_file]), batch_size, self._w)
 
             data_len = np.shape(self._inputs)[0]
             self._outputs = self._outputs[0:data_len, :]
@@ -105,8 +115,6 @@ class DataReader(object):
                  % (np.shape(self._inputs)[0], np.shape(self._outputs)[0]))
 
             self.num_samples = np.shape(self._outputs)[0]
-            # print("current file number : %d, samples : %d" % (self._num_file + 1, self.num_samples))
-            # print("Loaded " + self._name + " file number : %d" % (self._num_file + 1))
 
         else:
             self.file_change = False
@@ -120,20 +128,56 @@ class DataReader(object):
         inputs = inputs[self._start_idx:self._start_idx + batch_size + self._w, :]
         outputs = outputs[self._start_idx:self._start_idx + batch_size, :]
 
-        # if valid:
-        #     plt.figure(self._num_figure)
-        #     self._num_figure += 1
-        #     bb = np.zeros(aa.shape)
-        #     bb[:, 200:250] = outputs*10
-        #
-        #     cc = aa + bb
-        #     imgplot = plt.imshow(cc.T)
-        #     plt.show()
-
         self._start_idx += batch_size
-        # print(self._start_idx)
-        # print(self.num_samples)
+
         return inputs, outputs
+
+    # def next_batch(self, batch_size):
+    #
+    #     if self._start_idx + batch_size + self._w > self.num_samples:
+    #
+    #         self._start_idx = 0  #
+    #         self.file_change = True
+    #         self._num_file += 1
+    #
+    #         print("EOF : " + self._name + " file_" + str(self._num_file - 1).zfill(2) +
+    #               " -> BOF : " + self._name + " file_" + str(self._num_file).zfill(2))
+    #
+    #         if self._num_file > self._file_len - 1:
+    #             self.eof = True
+    #             self._num_file = 0
+    #             print("EOF : last " + self._name + " file. " + "-> BOF : " + self._name + " file_" +
+    #                   str(self._num_file).zfill(2))
+    #
+    #         self._inputs = self._read_input(self._input_file_list[self._num_file], self._input_spec_list[self._num_file])
+    #         self._outputs = self._read_output(self._output_file_list[self._num_file])
+    #
+    #         data_len = np.shape(self._inputs)[0]
+    #         self._outputs = self._outputs[0:data_len, :]
+    #
+    #         assert np.shape(self._inputs)[0] == np.shape(self._outputs)[0], \
+    #             ("# samples is not matched between input: %d and output: %d files"
+    #              % (np.shape(self._inputs)[0], np.shape(self._outputs)[0]))
+    #
+    #         self.num_samples = np.shape(self._outputs)[0]
+    #         # print("current file number : %d, samples : %d" % (self._num_file + 1, self.num_samples))
+    #         # print("Loaded " + self._name + " file number : %d" % (self._num_file + 1))
+    #
+    #     else:
+    #         self.file_change = False
+    #         self.eof = False
+    #
+    #     inputs = self._inputs
+    #     outputs = self._outputs
+    #
+    #     '''data mini batching part'''
+    #
+    #     inputs = inputs[self._start_idx:self._start_idx + batch_size + self._w, :]
+    #     outputs = outputs[self._start_idx:self._start_idx + batch_size, :]
+    #
+    #     self._start_idx += batch_size
+    #
+    #     return inputs, outputs
 
     def normalize(self, x):
         x = (x - self.train_mean)/self.train_std
