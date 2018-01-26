@@ -46,7 +46,7 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 ![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
 ## Training
 1. We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
-2. The model specifications are described in `./configure`.
+2. The model specifications are described in 'path/to/project/configure'.
 3. The training procedure has 2 steps: (i) MRCG extraction; (ii) Model training.
 
 Note: Do not forget adding the path to this project in the matlab.
