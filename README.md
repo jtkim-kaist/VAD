@@ -44,26 +44,21 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
 ## Training
-We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
-The training procedure has 2 steps: (i) MRCG extraction; (ii) Model training.
+1. We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
+2. The model specifications are described in `./configure`.
+3. The training procedure has 2 steps: (i) MRCG extraction; (ii) Model training.
 
-Note: Do not forget adding the path to this project in the matlab. Current version only supports DNN based training. We will update training script for other models.
+Note: Do not forget adding the path to this project in the matlab.
 
 ```
-# train.sh
 # train script options
-# m 0 : DNN
-# e : extract MRCG feature (1) or not (0). 
-# The MRCG extraction time is somewhat long so you can pass the feature extraction step if you already have MRCG feature.
+# m 0 : ACAM
+# m 1 : bDNN
+# m 2 : DNN
+# m 3 : LSTM
+# e : extract MRCG feature (1) or not (0)
 
-python3 $train -m 0 -e 1 --train_step=100 --prj_dir=$curdir
-
-# ckpt_update script options
-# u : update checkpoint from trained model (1) or restore checkpoint to default (0).
-# Note that when u==0, the normalization factor is also restored to default.
-# After training you should update the model checkpoint with the normalization factor.
-
-python3 $ckpt_update -u 1 --model=DNN --prj_dir=$curdir
+python3 $train -m 0 -e 1 --prj_dir=$curdir
 ```
 
 ## Recorded Dataset
@@ -89,9 +84,7 @@ At each environment, conversational speech by two Korean male speakers was recor
 | Avg. SNR (dB) | 5.61          | 2.05          | 5.71          | 18.26         | 7.91          |
 | % of speech   | 40.12         | 26.71         | 26.85         | 30.44         | 31.03         |
 ## TODO List
-1. Freezing the graph for running the model fast.
-2. Training script for bDNN, LSTM, ACAM --> will be updated until 2018-01-26
-3. Although MRCG show good performance but extraction time is somewhat long, therefore we will substitute it to other feature such as spectrogram.
+1. Although MRCG show good performance but extraction time is somewhat long, therefore we will substitute it to other feature such as spectrogram.
 ## Trouble Shooting
 If you find any errors in the code, please contact to us.
 
