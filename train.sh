@@ -3,7 +3,6 @@
 curdir=`pwd`
 pylibdir=`realpath $curdir/lib/python`
 train=`realpath $pylibdir/train.py`
-ckpt_update=`realpath $pylibdir/update_ckpt.py`
 # train script options
 # m 0 : ACAM
 # m 1 : bDNN
