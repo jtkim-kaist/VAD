@@ -1,14 +1,11 @@
-import argparse 
 import tensorflow as tf
-import data_reader_bDNN_v2 as dr
-import data_reader_DNN_v2 as dnn_dr
-import data_reader_RNN as rnn_dr
-
 
 import utils as utils
 import numpy as np
 import os, sys
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 def bdnn_prediction(batch_size, logits, threshold=0.6, w=19, u=9):
     bdnn_batch_size = batch_size + 2*w
@@ -64,7 +61,7 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
     final_label = []
 
     if model_type == 0:  # acam
-
+        import data_reader_bDNN_v2 as dr
         print(os.path.abspath('./configure/ACAM'))
         sys.path.insert(0, os.path.abspath('./configure/ACAM'))
 
@@ -120,7 +117,7 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
         return final_softout[0:data_len, :], final_label[0:data_len, :]
 
     if model_type == 1:  # bdnn
-
+        import data_reader_bDNN_v2 as dr
         print(os.path.abspath('./configure/bDNN'))
         sys.path.insert(0, os.path.abspath('./configure/bDNN'))
 
@@ -170,7 +167,7 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
         return final_softout[0:data_len, :], final_label[0:data_len, :]
 
     if model_type == 2:  # dnn
-
+        import data_reader_DNN_v2 as dnn_dr
         print(os.path.abspath('./configure/DNN'))
         sys.path.insert(0, os.path.abspath('./configure/DNN'))
 
@@ -216,6 +213,7 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
         return final_softout[0:data_len, :], final_label[0:data_len, :]
 
     if model_type == 3:  # lstm
+        import data_reader_RNN as rnn_dr
 
         print(os.path.abspath('./configure/LSTM'))
         sys.path.insert(0, os.path.abspath('./configure/LSTM'))
