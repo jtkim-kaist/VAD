@@ -52,6 +52,7 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 Note: Do not forget adding the path to this project in the matlab.
 
 ```
+# train.sh
 # train script options
 # m 0 : ACAM
 # m 1 : bDNN
