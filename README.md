@@ -37,7 +37,7 @@ This toolkit supports 4 types of MRCG based classifer implemented by python with
 - Matlab 2017b
 ## Example
 
-The example matlab script is `main.m`. Just run it on the matlab.
+The example matlab script is `main.m`. Just run it on the matlab. The default model provided in this toolkit is the trained model using our dataset. The used dataset is described in our paper.
 The result will be like following figure. 
 
 Note: To apply this toolkit to other speech data, the speech data should be sampled with 16kHz sampling frequency.
