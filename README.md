@@ -6,7 +6,8 @@ This toolkit provides the voice activity detection (VAD) code and our recorded d
 
 VAD toolkit in this project was used in the paper: 
 
-Juntae Kim, Minsoo Hahn: "Voice Activity Detection Utilizing an Adaptive Context Attention Model (ACAM)", accepted paper, IEEE Signal processing letters, 2018.
+Juntae Kim, Minsoo Hahn: "Voice Activity Detection Utilizing an Adaptive Context Attention Model (ACAM)", accepted paper, 
+*IEEE Signal Processing Letters*, 2018.
 
 ACAM is based on the recurrent attention model (RAM) [1] and the implementation of RAM can be found in [jlindsey15](https://github.com/jlindsey15/RAM) and [jtkim-kaist](https://github.com/jtkim-kaist/ram_modified)'s repository.
 
