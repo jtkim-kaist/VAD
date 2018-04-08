@@ -4,7 +4,8 @@ This toolkit provides the voice activity detection (VAD) code and our recorded d
 
 #### 2018-04-09
 
-The test sciprt fully written by python has been uploaded in 'py' branch.
+
+- The test sciprt fully written by python has been uploaded in 'py' branch.
 
 
 ## Introduction
