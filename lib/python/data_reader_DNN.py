@@ -56,18 +56,18 @@ class DataReader(object):
     @staticmethod
     def _read_input(input_file_dir, input_spec_dir):
 
-        data = np.fromfile(input_file_dir, dtype=np.float32)  # (# total frame, feature_size)
+        data = np.fromfile(input_file_dir)  # (# total frame, feature_size)
         with open(input_spec_dir,'r') as f:
             spec = f.readline()
             size = spec.split(',')
-        data = data.reshape((int(size[0]), int(size[1])), order='F')
+        data = data.reshape((int(size[0]), int(size[1])))
 
         return data
 
     @staticmethod
     def _read_output(output_file_dir):
 
-        data = np.fromfile(output_file_dir, dtype=np.float32)  # data shape : (# total frame,)
+        data = np.fromfile(output_file_dir)  # data shape : (# total frame,)
         data = data.reshape(-1, 1)  # data shape : (# total frame, 1)
 
         return data
