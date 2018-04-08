@@ -118,3 +118,7 @@ GNU General Public License for more details.
 [2] Zhang, Xiao-Lei, and DeLiang Wang. “Boosting contextual information for deep neural network based voice activity detection,” IEEE Trans. Audio, Speech, Lang. Process., vol. 24, no. 2, pp. 252-264, 2016.
 
 [3] Zazo Candil, Ruben, et al. “Feature learning with raw-waveform CLDNNs for Voice Activity Detection.”, 2016.
+
+## Acknowledgement
+
+Jaeseok, Kim (KAIST) contributed to this project for changing matlab script to python.
