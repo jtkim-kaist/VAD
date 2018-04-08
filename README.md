@@ -34,7 +34,7 @@ This toolkit supports 4 types of MRCG based classifer implemented by python with
 
 - Tensorflow 1.1-3
 
-- Matlab 2017b
+- Matlab 2017b (will be depreciated)
 ## Example
 
 The default model provided in this toolkit is the trained model using our dataset. The used dataset is described in our submitted paper.
@@ -86,8 +86,7 @@ At each environment, conversational speech by two Korean male speakers was recor
 | Avg. SNR (dB) | 5.61          | 2.05          | 5.71          | 18.26         | 7.91          |
 | % of speech   | 40.12         | 26.71         | 26.85         | 30.44         | 31.03         |
 ## TODO List
-1. Now, we are removing the matlab dependency from mrcg extraction part. The substitution will be written by python.
-2. Although MRCG show good performance but extraction time is somewhat long, therefore we will substitute it to other feature such as spectrogram.
+1. Although MRCG show good performance but extraction time is somewhat long, therefore we will substitute it to other feature such as spectrogram.
 ## Trouble Shooting
 If you find any errors in the code, please contact to us.
 
