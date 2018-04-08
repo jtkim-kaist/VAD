@@ -1,5 +1,12 @@
 # Voice Activity Detection Toolkit
 This toolkit provides the voice activity detection (VAD) code and our recorded dataset.
+## Update
+
+2018-04-09
+
+The test sciprt fully written by python has been uploaded in 'py' branch.
+
+
 ## Introduction
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/32532813-2b9c59aa-c490-11e7-8a30-a39de5aedc98.jpg)
