@@ -1,3 +1,6 @@
+Our laboritory was broken because of heavy rain so you cannot use our server to download our data. We now are recovering our system and it will be done until next week
+
+
 # Voice Activity Detection Toolkit
 This toolkit provides the voice activity detection (VAD) code and our recorded dataset.
 ## Update
