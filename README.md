@@ -22,7 +22,7 @@ J. Kim and M. Hahn, "Voice Activity Detection Using an Adaptive Context Attentio
 
 URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8309294&isnumber=4358004
 
-If our VAD toolkit supports your research, we are very appreciate if you cite this paper.
+If our VAD toolkit supports your research, we are very appreciated if you cite this paper.
 
 ACAM is based on the recurrent attention model (RAM) [1] and the implementation of RAM can be found in [jlindsey15](https://github.com/jlindsey15/RAM) and [jtkim-kaist](https://github.com/jtkim-kaist/ram_modified)'s repository.
 
