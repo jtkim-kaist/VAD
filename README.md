@@ -20,7 +20,7 @@ VAD toolkit in this project was used in the paper:
 
 J. Kim and M. Hahn, "Voice Activity Detection Using an Adaptive Context Attention Model," in *IEEE Signal Processing Letters*, vol. PP, no. 99, pp. 1-1.
 
-URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8309294&isnumber=4358004
+URL: https://ieeexplore.ieee.org/document/8309294/
 
 If our VAD toolkit supports your research, we are very appreciated if you cite this paper.
 
