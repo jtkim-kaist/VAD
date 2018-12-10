@@ -56,6 +56,17 @@ The result will be like following figure.
 Note: To apply this toolkit to other speech data, the speech data should be sampled with 16kHz sampling frequency.
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
+
+## Example
+
+Many people want to the post-processing so I updated.
+
+In py branch, you can see some parameters in utils.vad_func in main.py
+
+Each parameter can handle following errors.
+
+![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
+
 ## Training
 1. We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
 2. The model specifications are described in 'path/to/project/configure'.
