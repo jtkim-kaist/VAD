@@ -67,6 +67,10 @@ Each parameter can handle following errors.
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/49742392-cd778680-fcdb-11e8-96b9-a599a4f85f4f.PNG)
 
+FEC: hang_before
+MSC: off_on_length
+
+
 ## Training
 1. We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
 2. The model specifications are described in 'path/to/project/configure'.
