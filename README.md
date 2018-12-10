@@ -1,6 +1,10 @@
 # Voice Activity Detection Toolkit
 This toolkit provides the voice activity detection (VAD) code and our recorded dataset.
 ## Update
+#### 2018-12-11
+
+- Post processing is updated. 
+
 #### 2018-06-04
 
 - Good news! we have uploaded speech enhancement toolkit based on deep neural network. This toolkit provides several useful things such as data generation script. You can find this toolkit in [here](https://github.com/jtkim-kaist/Speech-enhancement) 
@@ -65,6 +69,7 @@ Many people want to the post-processing so I updated.
 In py branch, you can see some parameters in utils.vad_func in main.py
 
 Each parameter can handle following errors.
+
 
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/49742392-cd778680-fcdb-11e8-96b9-a599a4f85f4f.PNG)
