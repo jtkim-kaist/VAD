@@ -47,6 +47,7 @@ This toolkit supports 4 types of MRCG based classifer implemented by python with
 - Tensorflow 1.1-3
 
 - Matlab 2017b (will be depreciated)
+
 ## Example
 
 The default model provided in this toolkit is the trained model using our dataset. The used dataset is described in our submitted paper.
@@ -65,11 +66,21 @@ In py branch, you can see some parameters in utils.vad_func in main.py
 
 Each parameter can handle following errors.
 
+
 ![alt tag](https://user-images.githubusercontent.com/24668469/49742392-cd778680-fcdb-11e8-96b9-a599a4f85f4f.PNG)
 
+
 FEC: hang_before
+
 MSC: off_on_length
 
+OVER: hang_over
+
+NDS: on_off_length
+
+Note that there is NO optimal one. The optimal parameter set is according to the application.
+
+Enjoy.
 
 ## Training
 1. We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
