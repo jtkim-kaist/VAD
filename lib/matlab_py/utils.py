@@ -161,7 +161,8 @@ def mrcg_extract(audio_dir) :
     return data_len, winlen, winstep
 
 
-def vad_func(audio_dir, mode, th, output_type, is_default):
+def vad_func(audio_dir, mode, th, output_type, is_default, off_on_length=20, on_off_length=20, hang_before=10,
+             hang_over=10):
 
     os.system('rm -rf result')
     os.system('rm -rf sample_data')
@@ -180,7 +181,74 @@ def vad_func(audio_dir, mode, th, output_type, is_default):
     pp = pred_result['pred']
     result = np.zeros([len(pp), 1])
     result = th_classifier(pp, th)
-    if output_type == 1 :
+    result = vad_post(result, off_on_length, on_off_length, hang_before, hang_over)
+    if output_type == 1:
         result = frame2rawlabel(result, winlen, winstep)
 
     return result
+
+
+def vad_post(post_label, off_on_length=20, on_off_length=20, hang_before=10, hang_over=10):
+    # plt.subplot(4,1,1)
+    # plt.plot(post_label)
+
+    '''fill 1 to short valley'''
+    offset = False
+    onset = False
+    for i in range(post_label.shape[0]):
+
+        if i < post_label.shape[0] - 1:
+            if post_label[i] == 1 and post_label[i+1] == 0:  # offset detection
+                offset = True
+                offset_point = i
+
+            if post_label[i] == 0 and post_label[i+1] == 1 and offset:  # offset -> onset detection
+
+                if i - offset_point < off_on_length:
+                    post_label[offset_point:i+1, :] = 1  # fill 1 to valley
+                    offset = False
+
+    '''remove impulse like detection'''
+    # plt.subplot(4,1,2)
+    # plt.plot(post_label)
+    post_label = np.concatenate([np.zeros((1, 1)), post_label], axis=0)
+
+    for i in range(post_label.shape[0]):
+
+        if i < post_label.shape[0] - 1:
+            if post_label[i] == 0 and post_label[i + 1] == 1:  # onset detection
+                onset = True
+                onset_point = i
+
+            if post_label[i] == 1 and post_label[i + 1] == 0 and onset:  # onset -> offset detection
+
+                if i - onset_point < on_off_length:
+                    post_label[onset_point:i + 1, :] = 0  # fill 0 to hill
+                    onset = False
+
+    post_label = post_label[1:]
+
+    '''hang before & over'''
+
+    for i in range(post_label.shape[0]):
+
+        if i < post_label.shape[0] - 1:
+            if post_label[i] == 0 and post_label[i + 1] == 1:  # onset detection
+                onset = True
+
+                if i - hang_before < 0:
+                    post_label[0:i + 1] = 1
+                else:
+                    post_label[i-hang_before:i + 1] = 1
+
+            if post_label[i] == 1 and post_label[i + 1] == 0 and onset:  # onset -> offset detection
+
+                onset = False
+                print(i)
+                if i + hang_over > post_label.shape[0]:
+                    post_label[i:, :] = 1
+
+                else:
+                    post_label[i:i+hang_over, :] = 1
+
+    return post_label
