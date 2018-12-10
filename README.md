@@ -57,7 +57,7 @@ Note: To apply this toolkit to other speech data, the speech data should be samp
 
 ![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
 
-## Example
+## Post processing
 
 Many people want to the post-processing so I updated.
 
@@ -65,7 +65,7 @@ In py branch, you can see some parameters in utils.vad_func in main.py
 
 Each parameter can handle following errors.
 
-![alt tag](https://user-images.githubusercontent.com/24668469/32533149-5526a77e-c492-11e7-909f-a7c7983d9dd4.jpg)
+![alt tag](https://user-images.githubusercontent.com/24668469/49742392-cd778680-fcdb-11e8-96b9-a599a4f85f4f.PNG)
 
 ## Training
 1. We attached the sample database to 'path/to/project/data/raw'. Please refer to the database for understanding the data format. 
