@@ -1,6 +1,10 @@
 # Voice Activity Detection Toolkit
 This toolkit provides the voice activity detection (VAD) code and our recorded dataset.
 ## Update
+#### 2019-02-11
+
+- Accepted for the presentation of this toolkit in ICASSP 2019!
+
 #### 2018-12-11
 
 - Post processing is updated. 
