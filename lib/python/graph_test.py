@@ -61,7 +61,7 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
     final_label = []
 
     if model_type == 0:  # acam
-        import data_reader_bDNN_v2 as dr
+        from . import data_reader_bDNN_v2 as dr
         print(os.path.abspath('./configure/ACAM'))
         sys.path.insert(0, os.path.abspath('./configure/ACAM'))
 
@@ -106,18 +106,10 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
 
             final_softout.append(soft_pred)
             final_label.append(raw_labels)
-
-            # if valid_data_set.eof_checker():
-            #     final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
-            #     final_label = np.reshape(np.asarray(final_label), [-1, 1])
-            #     valid_data_set.reader_initialize()
-            #     # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
-            #     break
-
         return final_softout[0:data_len, :], final_label[0:data_len, :]
 
     if model_type == 1:  # bdnn
-        import data_reader_bDNN_v2 as dr
+        from . import data_reader_bDNN_v2 as dr
         print(os.path.abspath('./configure/bDNN'))
         sys.path.insert(0, os.path.abspath('./configure/bDNN'))
 
@@ -167,7 +159,7 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
         return final_softout[0:data_len, :], final_label[0:data_len, :]
 
     if model_type == 2:  # dnn
-        import data_reader_DNN_v2 as dnn_dr
+        from . import data_reader_DNN_v2 as dnn_dr
         print(os.path.abspath('./configure/DNN'))
         sys.path.insert(0, os.path.abspath('./configure/DNN'))
 
@@ -213,7 +205,7 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
         return final_softout[0:data_len, :], final_label[0:data_len, :]
 
     if model_type == 3:  # lstm
-        import data_reader_RNN as rnn_dr
+        from . import data_reader_RNN as rnn_dr
 
         print(os.path.abspath('./configure/LSTM'))
         sys.path.insert(0, os.path.abspath('./configure/LSTM'))
@@ -261,12 +253,6 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
 
             final_softout.append(soft_pred)
             final_label.append(raw_labels)
-            # if valid_data_set.eof_checker():
-            #     final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
-            #     final_label = np.reshape(np.asarray(final_label), [-1, 1])
-            #     valid_data_set.reader_initialize()
-            #     # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
-            #     break
 
         return final_softout[0:data_len, :], final_label[0:data_len, :]
 
