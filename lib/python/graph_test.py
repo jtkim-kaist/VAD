@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-import utils as utils
+from . import utils
 import numpy as np
 import os, sys
 

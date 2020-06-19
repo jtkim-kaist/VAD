@@ -1,7 +1,8 @@
 import sys
 sys.path.insert(0, './lib/python')
 import scipy.io as sio
-import graph_test as graph_test
+
+from . import graph_test
 import os, getopt
 import glob
 
