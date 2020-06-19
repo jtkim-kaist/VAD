@@ -62,8 +62,11 @@ def do_test(fname_model, test_file_dir, norm_dir, data_len, is_default, model_ty
 
     if model_type == 0:  # acam
         from . import data_reader_bDNN_v2 as dr
-        print(os.path.abspath('./configure/ACAM'))
-        sys.path.insert(0, os.path.abspath('./configure/ACAM'))
+        ACAM_relative_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '../../configure/ACAM',
+        )
+        sys.path.insert(0, os.path.abspath(ACAM_relative_file_path))
 
         import config as cg
 
