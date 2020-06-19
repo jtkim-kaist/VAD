@@ -57,6 +57,7 @@ if __name__ == '__main__':
             graph_list = sorted(glob.glob(model_dir + '/backup/backup_pb/frozen_model_ACAM.pb'))
             norm_dir = model_dir + '/backup/backup_norm'
             pred, label = graph_test.do_test(graph_list[-1], data_dir, norm_dir, data_len, is_default, mode)
+            print('{} pred : {} label'.format(pred, label))
         else:
             graph_list = sorted(glob.glob(model_dir + '/graph/ACAM/*.pb'))
             print(graph_list)
