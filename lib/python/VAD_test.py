@@ -1,9 +1,5 @@
 import sys
 sys.path.insert(0, './lib/python')
-import VAD_Proposed as Vp
-import VAD_DNN as Vd
-import VAD_bDNN as Vb
-import VAD_LSTM_2 as Vl
 import scipy.io as sio
 import graph_test as graph_test
 import os, getopt
