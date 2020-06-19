@@ -177,7 +177,7 @@ def vad_func(audio_dir, mode, th, output_type, is_default, off_on_length=20, on_
 
     os.system(order)
 
-    pred_result = sio.loadmat('./result/pred.mat')
+    pred_result = sio.loadmat('result/pred.mat')
     pp = pred_result['pred']
     result = np.zeros([len(pp), 1])
     result = th_classifier(pp, th)
