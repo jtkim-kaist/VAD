@@ -109,12 +109,11 @@ def frame2inpt(label, win_len, win_step):
     return raw_label
 
 
-def mrcg_extract(audio_dir) :
+def mrcg_extract(audio_dir, save_dir):
     noisy_speech, audio_sr = librosa.load(audio_dir, sr=16000)
     y_label = np.zeros([len(noisy_speech), 1])
-    os.makedirs("./sample_data", exist_ok=True)
-    os.makedirs("./sample_data/Labels", exist_ok=True)
-    save_dir = './sample_data'
+    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs("{}/Labels".format(save_dir), exist_ok=True)
     name_mrcg = save_dir + '/mrcg'
     name_label = save_dir + '/Labels/label'
     mrcg_mat = np.transpose(mrcg.mrcg_features(noisy_speech, audio_sr))
