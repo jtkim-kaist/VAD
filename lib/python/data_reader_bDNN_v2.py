@@ -1,14 +1,14 @@
-import numpy as np
-import os
 import glob
-import utils
+
+import numpy as np
 import scipy.io as sio
+
+from . import utils
 
 
 class DataReader(object):
 
     def __init__(self, input_dir, output_dir, norm_dir, w=19, u=9, name=None):
-        # print(name + " data reader initialization...")
         self._input_dir = input_dir
         self._output_dir = output_dir
         self._norm_dir = norm_dir

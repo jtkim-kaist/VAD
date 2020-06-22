@@ -1,19 +1,21 @@
 # Utils used with tensorflow implementation
 
-import tensorflow as tf
-import numpy as np
-import scipy.misc as misc
-import os, sys
-from six.moves import urllib
+import os
+import re
+import sys
 import tarfile
 import zipfile
-import scipy.io
-import re
-import data_reader_bDNN_v2 as dr
-import data_reader_DNN_v2 as dnn_dr
-import data_reader_RNN as rnn_dr
 
-from sklearn import metrics
+import numpy as np
+import scipy.io
+import scipy.misc as misc
+import tensorflow as tf
+from six.moves import urllib
+
+from . import data_reader_DNN_v2 as dnn_dr
+from . import data_reader_RNN as rnn_dr
+from . import data_reader_bDNN_v2 as dr
+
 __author__ = 'Juntae'
 
 
@@ -24,11 +26,17 @@ def vad_test(m_eval, sess_eval, batch_size_eval, eval_file_dir, norm_dir, data_l
 
     pad_size = batch_size_eval - data_len % batch_size_eval
     if eval_type != 2:
-        eval_data_set = dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval")
+        eval_data_set = dr.DataReader(
+            eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval"
+        )
     else:
-        eval_data_set = dnn_dr.DataReader(eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval")
+        eval_data_set = dnn_dr.DataReader(
+            eval_input_dir, eval_output_dir, norm_dir, w=19, u=9, name="eval"
+        )
 
-    final_softout, final_label = evaluation(m_eval, eval_data_set, sess_eval, batch_size_eval, eval_type)
+    final_softout, final_label = evaluation(
+        m_eval, eval_data_set, sess_eval, batch_size_eval, eval_type
+    )
 
     return final_softout, final_label
 
@@ -40,8 +48,6 @@ def affine_transform(x, output_dim, seed=0, name=None):
     """
     initializer = tf.truncated_normal_initializer(stddev=0.02, seed=seed)
 
-    # weights = tf.get_variable(name + "_w", [x.get_shape()[1], output_dim],
-    #                           initializer=tf.contrib.layers.xavier_initializer(seed=seed))
     weights = tf.get_variable(name + "_w", [x.get_shape()[1], output_dim],
                               initializer=initializer)
     b = tf.get_variable(name + "_b", [output_dim], initializer=tf.constant_initializer(0.0))
@@ -50,9 +56,6 @@ def affine_transform(x, output_dim, seed=0, name=None):
 
 
 def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
-    # num_samples = valid_data_set.num_samples
-    # num_batches = num_samples / batch_size
-
     if eval_type == 0:  # proposed
         final_softout = []
         final_label = []
@@ -67,20 +70,13 @@ def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
                 final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
                 final_label = np.reshape(np.asarray(final_label), [-1, 1])
                 valid_data_set.reader_initialize()
-                # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
                 break
 
-            valid_soft_result, valid_raw_labels = sess.run([m_valid.soft_result, m_valid.raw_labels],
-                                                           feed_dict=feed_dict)
+            valid_soft_result, valid_raw_labels = sess.run(
+                [m_valid.soft_result, m_valid.raw_labels], feed_dict=feed_dict
+            )
             final_softout.append(valid_soft_result)
             final_label.append(valid_raw_labels)
-
-            # if valid_data_set.eof_checker():
-            #     final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
-            #     final_label = np.reshape(np.asarray(final_label), [-1, 1])
-            #     valid_data_set.reader_initialize()
-            #     # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
-            #     break
 
         return final_softout, final_label
 
@@ -98,13 +94,13 @@ def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
                 final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
                 final_label = np.reshape(np.asarray(final_label), [-1, 1])
                 valid_data_set.reader_initialize()
-                # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                # initialize eof flag & num_file & start index
                 break
 
             valid_cost, valid_logits = sess.run([m_valid.cost, m_valid.logits], feed_dict=feed_dict)
-            valid_pred, soft_pred = bdnn_prediction(eval_batch_size + 2*valid_data_set._w, valid_logits, threshold=0.6)
-            # print(np.sum(valid_pred))
-
+            valid_pred, soft_pred = bdnn_prediction(
+                eval_batch_size + 2*valid_data_set._w, valid_logits, threshold=0.6
+            )
 
             raw_indx = int(np.floor(valid_labels.shape[1] / 2))
             raw_labels = valid_labels[:, raw_indx]
@@ -113,14 +109,6 @@ def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
 
             final_softout.append(soft_pred)
             final_label.append(raw_labels)
-
-            # if valid_data_set.eof_checker():
-            #     final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
-            #     final_label = np.reshape(np.asarray(final_label), [-1, 1])
-            #     valid_data_set.reader_initialize()
-            #     # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
-            #     break
-
         return final_softout, final_label
 
     elif eval_type == 2:  # dnn
@@ -140,7 +128,7 @@ def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
                 final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
                 final_label = np.reshape(np.asarray(final_label), [-1, 1])
                 valid_data_set.reader_initialize()
-                # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                # initialize eof flag & num_file & start index
                 break
 
             soft_pred, raw_labels = sess.run([m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
@@ -149,14 +137,6 @@ def evaluation(m_valid, valid_data_set, sess, eval_batch_size, eval_type):
 
             final_softout.append(soft_pred)
             final_label.append(raw_labels)
-
-            # if valid_data_set.eof_checker():
-            #     final_softout = np.reshape(np.asarray(final_softout), [-1, 1])
-            #     final_label = np.reshape(np.asarray(final_label), [-1, 1])
-            #     valid_data_set.reader_initialize()
-            #     # print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
-            #     break
-
         return final_softout, final_label
 
 
@@ -189,7 +169,10 @@ def maybe_download_and_extract(dir_path, url_name, is_tarfile=False, is_zipfile=
     if not os.path.exists(filepath):
         def _progress(count, block_size, total_size):
             sys.stdout.write(
-                '\r>> Downloading %s %.1f%%' % (filename, float(count * block_size) / float(total_size) * 100.0))
+                '\r>> Downloading %s %.1f%%' % (
+                    filename, float(count * block_size) / float(total_size) * 100.0
+                )
+            )
             sys.stdout.flush()
 
         filepath, _ = urllib.request.urlretrieve(url_name, filepath, reporthook=_progress)
@@ -263,15 +246,14 @@ def conv2d_strided(x, W, b):
 
 
 def conv2d_transpose_strided(x, W, b, output_shape=None, stride = 2):
-    # print x.get_shape()
-    # print W.get_shape()
     if output_shape is None:
         output_shape = x.get_shape().as_list()
         output_shape[1] *= 2
         output_shape[2] *= 2
         output_shape[3] = W.get_shape().as_list()[2]
-    # print output_shape
-    conv = tf.nn.conv2d_transpose(x, W, output_shape, strides=[1, stride, stride, 1], padding="SAME")
+    conv = tf.nn.conv2d_transpose(
+        x, W, output_shape, strides=[1, stride, stride, 1], padding="SAME"
+    )
     return tf.nn.bias_add(conv, b)
 
 
@@ -302,8 +284,12 @@ def batch_norm(x, n_out, phase_train, scope='bn', decay=0.9, eps=1e-5):
     with tf.variable_scope(scope):
         beta = tf.get_variable(name='beta', shape=[n_out], initializer=tf.constant_initializer(0.0)
                                , trainable=True)
-        gamma = tf.get_variable(name='gamma', shape=[n_out], initializer=tf.random_normal_initializer(1.0, 0.02),
-                                trainable=True)
+        gamma = tf.get_variable(
+            name='gamma',
+            shape=[n_out],
+            initializer=tf.random_normal_initializer(1.0, 0.02),
+            trainable=True
+        )
         batch_mean, batch_var = tf.nn.moments(x, [0, 1, 2], name='moments')
         ema = tf.train.ExponentialMovingAverage(decay=decay)
 
@@ -312,9 +298,11 @@ def batch_norm(x, n_out, phase_train, scope='bn', decay=0.9, eps=1e-5):
             with tf.control_dependencies([ema_apply_op]):
                 return tf.identity(batch_mean), tf.identity(batch_var)
 
-        mean, var = tf.cond(phase_train,
-                            mean_var_with_update,
-                            lambda: (ema.average(batch_mean), ema.average(batch_var)))
+        mean, var = tf.cond(
+            phase_train,
+            mean_var_with_update,
+            lambda: (ema.average(batch_mean), ema.average(batch_var))
+        )
         normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, eps)
     return normed
 
@@ -331,19 +319,30 @@ def bottleneck_unit(x, out_chan1, out_chan2, down_stride=False, up_stride=False,
     """
     Modified implementation from github ry?!
     """
-
     def conv_transpose(tensor, out_channel, shape, strides, name=None):
         out_shape = tensor.get_shape().as_list()
         in_channel = out_shape[-1]
         kernel = weight_variable([shape, shape, out_channel, in_channel], name=name)
         shape[-1] = out_channel
-        return tf.nn.conv2d_transpose(x, kernel, output_shape=out_shape, strides=[1, strides, strides, 1],
-                                      padding='SAME', name='conv_transpose')
+        return tf.nn.conv2d_transpose(
+            x,
+            kernel,
+            output_shape=out_shape,
+            strides=[1, strides, strides, 1],
+            padding='SAME',
+            name='conv_transpose',
+        )
 
     def conv(tensor, out_chans, shape, strides, name=None):
         in_channel = tensor.get_shape().as_list()[-1]
         kernel = weight_variable([shape, shape, in_channel, out_chans], name=name)
-        return tf.nn.conv2d(x, kernel, strides=[1, strides, strides, 1], padding='SAME', name='conv')
+        return tf.nn.conv2d(
+            x,
+            kernel,
+            strides=[1, strides, strides, 1],
+            padding='SAME',
+            name='conv'
+        )
 
     def bn(tensor, name=None):
         """
@@ -369,14 +368,32 @@ def bottleneck_unit(x, out_chan1, out_chan2, down_stride=False, up_stride=False,
                     b1 = conv_transpose(x, out_chans=out_chan2, shape=1, strides=first_stride,
                                         name='res%s_branch1' % name)
                 else:
-                    b1 = conv(x, out_chans=out_chan2, shape=1, strides=first_stride, name='res%s_branch1' % name)
+                    b1 = conv(
+                        x,
+                        out_chans=out_chan2,
+                        shape=1,
+                        strides=first_stride,
+                        name='res%s_branch1' % name
+                    )
                 b1 = bn(b1, 'bn%s_branch1' % name, 'scale%s_branch1' % name)
 
         with tf.variable_scope('branch2a'):
             if up_stride:
-                b2 = conv_transpose(x, out_chans=out_chan1, shape=1, strides=first_stride, name='res%s_branch2a' % name)
+                b2 = conv_transpose(
+                    x,
+                    out_chans=out_chan1,
+                    shape=1,
+                    strides=first_stride,
+                    name='res%s_branch2a' % name
+                )
             else:
-                b2 = conv(x, out_chans=out_chan1, shape=1, strides=first_stride, name='res%s_branch2a' % name)
+                b2 = conv(
+                    x,
+                    out_chans=out_chan1,
+                    shape=1,
+                    strides=first_stride,
+                    name='res%s_branch2a' % name
+                )
             b2 = bn(b2, 'bn%s_branch2a' % name, 'scale%s_branch2a' % name)
             b2 = tf.nn.relu(b2, name='relu')
 
@@ -458,13 +475,16 @@ def batch_norm_affine_transform(x, output_dim, decay=0, name=None, seed=0, is_tr
     affine transformation Wx+b
     assumes x.shape = (batch_size, num_features)
     """
-    # initializer = tf.contrib.layers.xavier_initializer(seed=seed)
-
-    w = tf.get_variable(name+"_w", [x.get_shape()[1], output_dim], initializer = tf.contrib.layers.xavier_initializer(seed=seed))
+    w = tf.get_variable(
+        name+"_w",
+        [x.get_shape()[1], output_dim],
+        initializer = tf.contrib.layers.xavier_initializer(seed=seed)
+    )
     b = tf.get_variable(name+"_b", [output_dim], initializer=tf.constant_initializer(0.0))
     affine_result = tf.matmul(x, w) + b
-    batch_norm_result = tf.contrib.layers.batch_norm(affine_result, decay=decay, is_training=is_training,
-                                                     updates_collections=None)
+    batch_norm_result = tf.contrib.layers.batch_norm(
+        affine_result, decay=decay, is_training=is_training, updates_collections=None
+    )
     return batch_norm_result
 
 
@@ -549,8 +569,9 @@ def do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN'):
         import config as cg
         valid_batch_size = cg.batch_size
 
-        valid_data_set = dnn_dr.DataReader(valid_file_dir, valid_file_dir+'/Labels', norm_dir, w=cg.w,
-                                           u=cg.u, name="eval")
+        valid_data_set = dnn_dr.DataReader(
+            valid_file_dir, valid_file_dir+'/Labels', norm_dir, w=cg.w, u=cg.u, name="eval"
+        )
 
         avg_valid_accuracy = 0.
         avg_valid_cost = 0.
@@ -575,7 +596,8 @@ def do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN'):
 
             if valid_data_set.eof_checker():
                 valid_data_set.reader_initialize()
-                print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                print('Valid data reader was initialized!')
+                # initialize eof flag & num_file & start index
                 break
 
             one_hot_labels = valid_labels.reshape((-1, 1))
@@ -584,13 +606,9 @@ def do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN'):
             feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: one_hot_labels,
                          m_valid.keep_probability: 1}
 
-            # valid_cost, valid_softpred, valid_raw_labels\
-            #     = sess.run([m_valid.cost, m_valid.softpred, m_valid.raw_labels], feed_dict=feed_dict)
-            #
-            # fpr, tpr, thresholds = metrics.roc_curve(valid_raw_labels, valid_softpred, pos_label=1)
-            # valid_auc = metrics.auc(fpr, tpr)
-
-            valid_cost, valid_accuracy = sess.run([m_valid.cost, m_valid.accuracy], feed_dict=feed_dict)
+            valid_cost, valid_accuracy = sess.run(
+                [m_valid.cost, m_valid.accuracy], feed_dict=feed_dict
+            )
 
             avg_valid_accuracy += valid_accuracy
             avg_valid_cost += valid_cost
@@ -605,8 +623,9 @@ def do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN'):
         import config as cg
         valid_batch_size = cg.batch_size
 
-        valid_data_set = dr.DataReader(valid_file_dir, valid_file_dir + '/Labels', norm_dir, w=cg.w,
-                                           u=cg.u, name="eval")
+        valid_data_set = dr.DataReader(
+            valid_file_dir, valid_file_dir + '/Labels', norm_dir, w=cg.w, u=cg.u, name="eval"
+        )
         avg_valid_accuracy = 0.
         avg_valid_cost = 0.
         itr_sum = 0.
@@ -620,7 +639,6 @@ def do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN'):
             valid_inputs, valid_labels = valid_data_set.next_batch(valid_batch_size)
 
             if valid_data_set.file_change_checker():
-                # print(itr_file)
                 accuracy_list[itr_file] = avg_valid_accuracy / itr_sum
                 cost_list[itr_file] = avg_valid_cost / itr_sum
                 avg_valid_cost = 0.
@@ -631,7 +649,8 @@ def do_validation(m_valid, sess, valid_file_dir, norm_dir, type='DNN'):
 
             if valid_data_set.eof_checker():
                 valid_data_set.reader_initialize()
-                print('Valid data reader was initialized!')  # initialize eof flag & num_file & start index
+                print('Valid data reader was initialized!')
+                # initialize eof flag & num_file & start index
                 break
 
             feed_dict = {m_valid.inputs: valid_inputs, m_valid.labels: valid_labels,

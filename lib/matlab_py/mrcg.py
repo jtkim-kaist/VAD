@@ -117,7 +117,12 @@ def loudness(freq):
     # pressure level dB. The equation is taken from section 4 of BS3383.
     # Written by ZZ Jin, and adapted by DLW in Jan'07
     dB=60
-    fmat = sio.loadmat('./lib/matlab_py/f_af_bf_cf.mat')
+    fmat = sio.loadmat(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'f_af_bf_cf.mat',
+        )
+    )
     # Stores parameters of equal-loudness functions from BS3383,"Normal equal-loudness level
     # contours for pure tones under free-field listening conditions", table 1.
     # f (or ff) is the tone frequency, af and bf are frequency-dependent coefficients, and

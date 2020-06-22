@@ -1,20 +1,14 @@
 import os
+
 import librosa
 import numpy as np
 import scipy.io as sio
-# from scipy.stats import threshold
-import lib.matlab_py.mrcg as mrcg
 
+from . import mrcg as mrcg
 
 def th_classifier(input, th):
-
     output = (input >= th).choose(input, 1)
     output = (output < th).choose(output, 0)
-    # output = np.clip(input, a_min=th, a_max=None)
-    # output = np.divide(output, th)
-    # output = np.subtract(1, output)
-    # output = np.clip(output, a_min=1 - th, a_max=None)
-    # output = np.subtract(1, output)
     return output
 
 
@@ -32,7 +26,7 @@ def binary_saver(name_file, data, num_file ):
     return fid_file, fid_txt
 
 
-def Frame_Length( x,overlap,nwind ):
+def Frame_Length( x, overlap, nwind):
     nx = len(x)
     noverlap = nwind - overlap
     framelen = int((nx - noverlap) / (nwind - noverlap))
@@ -83,7 +77,9 @@ def frame2rawlabel(label, win_len, win_step):
             break
         else:
             temp_label = label[i]
-            raw_label[start_indx+1:start_indx+win_len] = raw_label[start_indx+1:start_indx+win_len] + temp_label
+            raw_label[
+                start_indx+1:start_indx+win_len
+            ] = raw_label[start_indx+1:start_indx+win_len] + temp_label
         i += 1
 
         start_indx = start_indx + win_step
@@ -91,25 +87,6 @@ def frame2rawlabel(label, win_len, win_step):
     raw_label = (raw_label >= 1).choose(raw_label, 1)
 
     return raw_label
-
-# def frame2rawlabel(label, win_len, win_step):
-#     num_frame = len(label)
-#     total_len = (num_frame - 1) * win_step + win_len
-#     raw_label = np.zeros([1, total_len])
-#     start_indx = 0
-#     i = 0
-#     while 1 :
-#         if (start_indx+win_len>total_len):
-#             break
-#
-#         temp = label[i]*np.ones([1,win_len])
-#         temp2 = raw_label[0][start_indx : start_indx + win_len]
-#         raw_label[0][start_indx : start_indx + win_len] = temp2 + temp
-#         i = i+1
-#         start_indx = start_indx+win_step
-#
-#     raw_label = th_classifier(raw_label, 1)
-#     return raw_label
 
 
 def frame2inpt(label, win_len, win_step):
@@ -121,9 +98,10 @@ def frame2inpt(label, win_len, win_step):
     while 1:
         if (start_indx + win_len > total_len):
             break
-
         temp = label[i] * np.ones([1, win_len])
-        raw_label[start_indx: start_indx + win_len] = raw_label[start_indx: start_indx + win_len] + temp
+        raw_label[
+            start_indx: start_indx + win_len
+        ] = raw_label[start_indx: start_indx + win_len] + temp
         i = i + 1
         start_indx = start_indx + win_step
 
@@ -131,12 +109,11 @@ def frame2inpt(label, win_len, win_step):
     return raw_label
 
 
-def mrcg_extract(audio_dir) :
+def mrcg_extract(audio_dir, save_dir):
     noisy_speech, audio_sr = librosa.load(audio_dir, sr=16000)
     y_label = np.zeros([len(noisy_speech), 1])
-    os.mkdir('./sample_data')
-    os.mkdir('./sample_data/Labels')
-    save_dir = './sample_data'
+    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs("{}/Labels".format(save_dir), exist_ok=True)
     name_mrcg = save_dir + '/mrcg'
     name_label = save_dir + '/Labels/label'
     mrcg_mat = np.transpose(mrcg.mrcg_features(noisy_speech, audio_sr))
@@ -155,14 +132,22 @@ def mrcg_extract(audio_dir) :
         binary_saver(name_label, framed_label[1: len(mrcg_mat), 1], num )
         data_len = len(mrcg_mat)
     sio.savemat(save_dir+'/normalize_factor',{'train_mean': train_mean, 'train_std': train_std})
-    # save([save_dir, '/normalize_factor'], 'train_mean', 'train_std')
 
     print('MRCG extraction is successifully done.')
     return data_len, winlen, winstep
 
 
-def vad_func(audio_dir, mode, th, output_type, is_default, off_on_length=20, on_off_length=20, hang_before=10,
-             hang_over=10):
+def vad_func(
+    audio_dir,
+    mode,
+    th,
+    output_type,
+    is_default,
+    off_on_length=20,
+    on_off_length=20,
+    hang_before=10,
+    hang_over=10
+):
 
     os.system('rm -rf result')
     os.system('rm -rf sample_data')
@@ -177,9 +162,8 @@ def vad_func(audio_dir, mode, th, output_type, is_default, off_on_length=20, on_
 
     os.system(order)
 
-    pred_result = sio.loadmat('./result/pred.mat')
+    pred_result = sio.loadmat('result/pred.mat')
     pp = pred_result['pred']
-    result = np.zeros([len(pp), 1])
     result = th_classifier(pp, th)
     result = vad_post(result, off_on_length, on_off_length, hang_before, hang_over)
     if output_type == 1:
@@ -189,9 +173,6 @@ def vad_func(audio_dir, mode, th, output_type, is_default, off_on_length=20, on_
 
 
 def vad_post(post_label, off_on_length=20, on_off_length=20, hang_before=10, hang_over=10):
-    # plt.subplot(4,1,1)
-    # plt.plot(post_label)
-
     '''fill 1 to short valley'''
     offset = False
     onset = False
@@ -209,8 +190,6 @@ def vad_post(post_label, off_on_length=20, on_off_length=20, hang_before=10, han
                     offset = False
 
     '''remove impulse like detection'''
-    # plt.subplot(4,1,2)
-    # plt.plot(post_label)
     post_label = np.concatenate([np.zeros((1, 1)), post_label], axis=0)
 
     for i in range(post_label.shape[0]):
