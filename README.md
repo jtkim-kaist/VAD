@@ -112,7 +112,7 @@ python3 $train -m 0 -e 1 --prj_dir=$curdir
 
 ## Recorded Dataset
 Our recored dataset is freely available: 
-[Download](http://sail.ipdisk.co.kr:80/publist/VOL1/Database/VAD_DB/Recorded_data.zip)
+[Download](https://www.dropbox.com/s/jvwepe4hvonona5/record_data.zip?dl=0)
 
 
 #### Specification
