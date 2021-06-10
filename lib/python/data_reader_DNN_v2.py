@@ -46,25 +46,27 @@ class DataReader(object):
 
     @staticmethod
     def _read_input(input_file_dir, input_spec_dir):
-
-        data = np.fromfile(input_file_dir, dtype=np.float32)  # (# total frame, feature_size)
+        print(input_file_dir)
+        data = np.fromfile(input_file_dir)  # (# total frame, feature_size)
         with open(input_spec_dir,'r') as f:
             spec = f.readline()
             size = spec.split(',')
-        data = data.reshape((int(size[0]), int(size[1])), order='F')
+        # data = data.reshape((int(size[0]), int(size[1])), order='F')
+        data = data.reshape((int(size[0]), int(size[1])))
 
         return data
 
     @staticmethod
     def _read_output(output_file_dir):
-
-        data = np.fromfile(output_file_dir, dtype=np.float32)  # data shape : (# total frame,)
+        print(output_file_dir)
+        data = np.fromfile(output_file_dir)  # data shape : (# total frame,)
         data = data.reshape(-1, 1)  # data shape : (# total frame, 1)
 
         return data
 
     @staticmethod
     def _padding(inputs, batch_size, w_val):
+        print(inputs.shape[0])
         pad_size = batch_size - inputs.shape[0] % batch_size
 
         inputs = np.concatenate((inputs, np.zeros((pad_size, inputs.shape[1]), dtype=np.float32)))
